@@ -1,0 +1,30 @@
+#Set of new config variables
+#This should be the only editable part
+
+# REMEMBER TO SET THESE IN DRUPAL ON CHANGES
+# To set settings do this in ./public_html
+# drush vget subsite
+# Expeted resutl
+# bc_subsites_domain_suffix: .subsites.xxx.dk
+# bc_subsites_script_dir: /var/www/subsites.xxx.dk/scripts/
+#
+# To set a variable do:
+# drush vset bc_subsites_domain_suffix .subsites.xxx.dk
+
+BASEDIR="/var/www/subsites.xxx.dk"
+SERVERIP="[SERVER_IP]"
+PROFILE="os2sub"
+EMAIL="drupal@bellcom.dk"
+SCRIPTDIR="$(dirname "$0")"
+ADMINPASS=$(cat "$SCRIPTDIR/.admin_password.txt")
+VHOSTTEMPLATE="$BASEDIR/vhost-template.prod.txt"
+MULTISITE="$BASEDIR/public_html"
+SITESFILE="$MULTISITE/sites/sites.php"
+TMPDIRBASE="$BASEDIR/tmp"
+LOGDIRBASE="$BASEDIR/logs"
+SESSIONDIRBASE="$BASEDIR/sessions"
+DBDIR="/var/lib/mysql"
+DBUSER="temptest"
+NOW=$(date +"%d/%m/%y %H:%M:%S")
+SQLADMIN=root
+SITEADMIN=xxx
