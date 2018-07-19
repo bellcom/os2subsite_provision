@@ -197,6 +197,10 @@ create_vhost() {
 
 install_drupal() {
   debug "Installing drupal ($SITENAME)"
+  install_drupal$DRUPAL
+}
+
+install_drupal7() {
   # Do a drush site install
   /usr/bin/drush -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS"
 
@@ -213,6 +217,22 @@ install_drupal() {
   # translation updates - takes a long time
   #/usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" l10n-update-refresh
   #/usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" l10n-update
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" dis update
+}
+
+install_drupal8() {
+  # Do a drush site install
+  /usr/bin/drush -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS"
+
+  # Set tmp
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.file path.temporary "$TMPDIR"
+
+  # Do some drupal setup here. Could also be done in the install profile.
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" cset user.settings register admin_only
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" cset system.logging error_level some
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance css.preprocess 1
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance js.preprocess 1
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" dis update
 }
 
@@ -233,9 +253,17 @@ add_to_crontab() {
   else
     CRONMINUTE=0
   fi
+  get_cron_key$DRUPAL
+}
+
+set_crontab7() {
   CRONKEY=$(/usr/bin/drush -r "$MULTISITE" --uri="$SITENAME" vget cron_key | cut -d \' -f 2)
   CRONLINE="$CRONMINUTE */2 * * * /usr/bin/wget -O - -q -t 1 http://$SITENAME/cron.php?cron_key=$CRONKEY"
   (/usr/bin/crontab -u www-data -l; echo "$CRONLINE") | /usr/bin/crontab -u www-data -
+}
+
+set_crontab8() {
+  debug "@TODO set_crontab8"
 }
 
 mail_status() {
@@ -244,6 +272,7 @@ mail_status() {
 
 add_subsiteadmin() {
   debug "Create subsiteadmin user with email ($USEREMAIL)"
+  # This function compatible with Drupal 7/8
   # Create user with email specified in subsitecreator.
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" user-create subsiteadmin --mail="$USEREMAIL"
   # Add the role "Administrator"

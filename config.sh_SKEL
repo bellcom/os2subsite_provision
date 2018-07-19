@@ -28,3 +28,6 @@ DBUSER="temptest"
 NOW=$(date +"%d/%m/%y %H:%M:%S")
 SQLADMIN=root
 SITEADMIN=xxx
+
+# Version of Drupal core. Accepted values 7,8
+DRUPAL=8
