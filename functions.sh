@@ -189,6 +189,7 @@ create_dirs() {
 create_vhost() {
   debug "Adding and enabling $SITENAME vhost"
   cp "$VHOSTTEMPLATE" "/etc/apache2/sites-available/$SITENAME.conf"
+  perl -p -i -e "s/\[basedir\]/$BASEDIR/g" "/etc/apache2/sites-available/$SITENAME.conf"
   perl -p -i -e "s/\[domain\]/$SITENAME/g" "/etc/apache2/sites-available/$SITENAME.conf"
   a2ensite "$SITENAME" >/dev/null
   debug "Reloading Apache2"
@@ -233,11 +234,14 @@ install_drupal8() {
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance css.preprocess 1
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance js.preprocess 1
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
-  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" dis update
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" pm:uninstall update
 }
 
 set_permissions() {
   debug "Setting correct permissions"
+
+  # this is needed to trigger tmp file creation
+  wget -q $SITENAME -O /dev/null
   /bin/chgrp -R www-data "$MULTISITE/sites/$SITENAME"
   /bin/chmod -R g+rwX "$MULTISITE/sites/$SITENAME"
   /bin/chmod g-w "$MULTISITE/sites/$SITENAME" "$MULTISITE/sites/$SITENAME/settings.php"
