@@ -189,7 +189,7 @@ create_dirs() {
 create_vhost() {
   debug "Adding and enabling $SITENAME vhost"
   cp "$VHOSTTEMPLATE" "/etc/apache2/sites-available/$SITENAME.conf"
-  perl -p -i -e "s/\[basedir\]/$BASEDIR/g" "/etc/apache2/sites-available/$SITENAME.conf"
+  perl -p -i -e "s~\[basedir\]~$BASEDIR~g" "/etc/apache2/sites-available/$SITENAME.conf"
   perl -p -i -e "s/\[domain\]/$SITENAME/g" "/etc/apache2/sites-available/$SITENAME.conf"
   a2ensite "$SITENAME" >/dev/null
   debug "Reloading Apache2"
@@ -239,9 +239,6 @@ install_drupal8() {
 
 set_permissions() {
   debug "Setting correct permissions"
-
-  # this is needed to trigger tmp file creation
-  wget -q $SITENAME -O /dev/null
   /bin/chgrp -R www-data "$MULTISITE/sites/$SITENAME"
   /bin/chmod -R g+rwX "$MULTISITE/sites/$SITENAME"
   /bin/chmod g-w "$MULTISITE/sites/$SITENAME" "$MULTISITE/sites/$SITENAME/settings.php"
