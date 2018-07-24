@@ -222,8 +222,12 @@ install_drupal7() {
 }
 
 install_drupal8() {
+  # Preparing site folder
+  mkdir -p "$MULTISITE/sites/$SITENAME"
+  cp $MULTISITE/sites/default/default.settings.php  $MULTISITE/sites/$SITENAME/settings.php
+
   # Do a drush site install
-  /usr/bin/drush -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS"
+  /usr/bin/drush -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
 
   # Set tmp
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.file path.temporary "$TMPDIR"
