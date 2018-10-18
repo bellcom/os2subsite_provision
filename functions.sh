@@ -1,3 +1,7 @@
+if [ -f "$SCRIPTDIR"/local_function.sh ]; then 
+  source "$SCRIPTDIR"/local_function.sh
+fi
+
 debug() {
   if [[ "$DEBUG" == true ]]; then
     echo "DEBUG: $1"
@@ -178,12 +182,17 @@ create_db() {
 }
 
 create_dirs() {
+  debug "Creating dirs"
   TMPDIR="$TMPDIRBASE/$SITENAME"
   LOGDIR="$LOGDIRBASE/$SITENAME"
   SESSIONDIR="$SESSIONDIRBASE/$SITENAME"
   mkdir -p "$TMPDIR"
   mkdir -p "$LOGDIR"
   mkdir -p "$SESSIONDIR"
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+   ${FUNCNAME[0]}_local
+  fi
 }
 
 create_vhost() {
@@ -193,12 +202,14 @@ create_vhost() {
   perl -p -i -e "s/\[domain\]/$SITENAME/g" "/etc/apache2/sites-available/$SITENAME.conf"
   #a2ensite "$SITENAME" >/dev/null
   ln -s /etc/apache2/sites-available/$SITENAME.conf /etc/apache2/sites-enabled/$SITENAME.conf
-  debug "Reloading Apache2"
+  debug "Reloading Apache2..."
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    systemctl restart httpd.service > /dev/null
+    systemctl restart httpd.service
   fi
+
+  debug "Done!"
 }
 
 install_drupal() {
@@ -227,12 +238,14 @@ install_drupal7() {
 }
 
 install_drupal8() {
+  debug "starting install Drupal"
   # Preparing site folder
   mkdir -p "$MULTISITE/sites/$SITENAME"
   cp $MULTISITE/sites/default/default.settings.php  $MULTISITE/sites/$SITENAME/settings.php
 
   # Do a drush site install
-  /usr/bin/drush -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
+  /usr/bin/drush -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
+  debug "Drupal install phase succesfuly finished"
 
   # Set tmp
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.file path.temporary "$TMPDIR"
@@ -248,15 +261,15 @@ install_drupal8() {
 
 set_permissions() {
   debug "Setting correct permissions"
-  /bin/chgrp -R www-data "$MULTISITE/sites/$SITENAME"
+  /bin/chgrp -R $APACHEUSER "$MULTISITE/sites/$SITENAME"
   /bin/chmod -R g+rwX "$MULTISITE/sites/$SITENAME"
   /bin/chmod g-w "$MULTISITE/sites/$SITENAME" "$MULTISITE/sites/$SITENAME/settings.php"
-  /bin/chown -R www-data "$TMPDIR"
+  /bin/chown -R $APACHEUSER "$TMPDIR"
   /bin/chmod -R g+rwX "$TMPDIR"
 }
 
 add_to_crontab() {
-  debug "Adding Drupal cron.php to www-data crontab"
+  debug "Adding Drupal cron.php to $APACHEUSER crontab"
   # if shuf is available, then run cron at random minutes
   if [ -x "/usr/bin/shuf" ]; then
     CRONMINUTE=$(shuf -i 0-59 -n 1)
@@ -313,7 +326,7 @@ delete_db() {
   DBUSER=$(echo "$DBNAME" | cut -c 1-16)
   debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
   # backup first, just in case
-  /usr/local/sbin/mysql_backup.sh "$DBNAME"
+  #/usr/local/sbin/mysql_backup.sh "$DBNAME"
   /usr/bin/mysql -u root -e "DROP DATABASE $DBNAME;"
   /usr/bin/mysql -u root -e "DROP USER $DBUSER@localhost";
 }

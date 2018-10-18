@@ -7,4 +7,4 @@
 # Config files
 .admin_password.txt
 config.sh
-
+local_function.sh
