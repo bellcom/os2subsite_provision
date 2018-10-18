@@ -194,7 +194,11 @@ create_vhost() {
   #a2ensite "$SITENAME" >/dev/null
   ln -s /etc/apache2/sites-available/$SITENAME.conf /etc/apache2/sites-enabled/$SITENAME.conf
   debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    systemctl restart httpd.service > /dev/null
+  fi
 }
 
 install_drupal() {
@@ -293,7 +297,11 @@ delete_vhost() {
   rm -f "/etc/apache2/sites-enabled/$SITENAME.conf"
   rm -f "/etc/apache2/sites-available/$SITENAME.conf"
   debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    systemctl restart httpd.service > /dev/null
+  fi
 }
 
 delete_db() {
@@ -338,7 +346,11 @@ add_to_vhost() {
   debug "Adding $NEWDOMAIN to vhost for $SITENAME"
   /usr/bin/perl -p -i -e "s/ServerName $SITENAME/ServerName $SITENAME\n    ServerAlias $NEWDOMAIN/g" "$VHOST"
   debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    systemctl restart httpd.service > /dev/null
+  fi
 }
 
 add_to_sites() {
@@ -350,5 +362,9 @@ remove_from_vhost() {
   debug "Removing $REMOVEDOMAIN from vhost for $SITENAME"
   sed -i "/ServerAlias\ $REMOVEDOMAIN\$/d" "$VHOST"
   debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    systemctl restart httpd.service > /dev/null
+  fi
 }
