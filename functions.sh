@@ -1,4 +1,4 @@
-if [ -f "$SCRIPTDIR"/local_function.sh ]; then 
+if [ -f "$SCRIPTDIR"/local_function.sh ]; then
   source "$SCRIPTDIR"/local_function.sh
 fi
 
@@ -276,17 +276,18 @@ add_to_crontab() {
   else
     CRONMINUTE=0
   fi
-  get_cron_key$DRUPAL
+  set_crontab$DRUPAL
 }
 
 set_crontab7() {
   CRONKEY=$(/usr/bin/drush -r "$MULTISITE" --uri="$SITENAME" vget cron_key | cut -d \' -f 2)
   CRONLINE="$CRONMINUTE */2 * * * /usr/bin/wget -O - -q -t 1 http://$SITENAME/cron.php?cron_key=$CRONKEY"
-  (/usr/bin/crontab -u www-data -l; echo "$CRONLINE") | /usr/bin/crontab -u www-data -
+  (/usr/bin/crontab -u $APACHEUSER -l; echo "$CRONLINE") | /usr/bin/crontab -u $APACHEUSER -
 }
 
 set_crontab8() {
-  debug "@TODO set_crontab8"
+  CRONLINE="$CRONMINUTE */2 * * * /usr/bin/drush -r $MULTISITE --uri=$SITENAME cron"
+  (/usr/bin/crontab -u $APACHEUSER -l; echo "$CRONLINE") | /usr/bin/crontab -u $APACHEUSER -
 }
 
 mail_status() {
@@ -351,8 +352,8 @@ delete_dirs() {
 }
 
 remove_from_crontab() {
-  debug "Removing Drupal cron.php from www-data crontab ($SITENAME)"
-  crontab -u www-data -l | sed "/$SITENAME\/cron.php/d" | crontab -u www-data -
+  debug "Removing Drupal cron.php from $APACHEUSER crontab ($SITENAME)"
+  crontab -u $APACHEUSER -l | sed "/$SITENAME/d" | crontab -u $APACHEUSER -
 }
 
 add_to_vhost() {
