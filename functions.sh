@@ -206,7 +206,7 @@ create_vhost() {
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    systemctl restart httpd.service
+    apachectl graceful
   fi
 
   debug "Done!"
@@ -313,7 +313,7 @@ delete_vhost() {
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    systemctl restart httpd.service > /dev/null
+    apachectl graceful
   fi
 }
 
@@ -362,7 +362,7 @@ add_to_vhost() {
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    systemctl restart httpd.service > /dev/null
+    apachectl graceful
   fi
 }
 
@@ -378,6 +378,6 @@ remove_from_vhost() {
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    systemctl restart httpd.service > /dev/null
+    apachectl graceful
   fi
 }
