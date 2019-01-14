@@ -1,0 +1,13 @@
+name = Bellcom subsites module
+description = Create and manage subsites
+core = 7.x
+package = Bellcom
+dependencies[] = node
+dependencies[] = text
+features[features_api][] = api:2
+features[field_base][] = field_admin_mail
+features[field_base][] = field_domains
+features[field_instance][] = node-subsite-field_admin_mail
+features[field_instance][] = node-subsite-field_domains
+features[node][] = subsite
+features_exclude[dependencies][features] = features

@@ -1,0 +1,343 @@
+<?php
+/**
+ * @file
+ * Code for the Bellcom subsites module feature.
+ */
+
+include_once 'bc_subsites.features.inc';
+/**
+ * @file
+ * Bellcom Subsites module.
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function bc_subsites_permission() {
+  return array(
+    'bc subsites create/manage subsite' => array(
+      'title' => 'Create/manage subsites',
+      'description' => 'Allow user to create and manage subsites',
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function bc_subsites_menu() {
+  $items['admin/subsites'] = array(
+    'title' => 'Subsites',
+    'page callback' => 'bc_subsites_overview',
+    'access arguments' => array('bc subsites create/manage subsite'),
+  );
+  $items['admin/subsites/log'] = array(
+    'title' => 'Subsites log',
+    'page callback' => 'bc_subsites_log',
+    'access arguments' => array('access site reports'),
+  );
+  $items['admin/subsites/status'] = array(
+    'title' => 'Status: Udfører handling',
+    'page callback' => 'bc_subsites_status',
+    'access arguments' => array('bc subsites create/manage subsite'),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_init().
+ */
+function bc_subsites_init() {
+  if (arg(1) == 'node' && (arg(3) == 'edit' || arg(3) == 'add')) {
+    error_log('hest');
+  }
+  if (current_path() == 'admin/subsites/status') {
+    drupal_add_library('system', 'ui.progressbar');
+  }
+}
+
+/**
+ * Redirect to watchdog.
+ */
+function bc_subsites_log() {
+  $_SESSION['dblog_overview_filter'] = array(
+    'type' => array(
+      'bc_subsite' => 'bc_subsite',
+    ),
+    'severity' => array(),
+  );
+  drupal_goto('admin/reports/dblog');
+}
+
+/**
+ * Statuspage for running processes.
+ */
+function bc_subsites_status() {
+  if (!isset($_SESSION['bc_subsite_pids']) || empty($_SESSION['bc_subsite_pids'])) {
+    drupal_goto('admin/subsites');
+  }
+  drupal_add_js('setTimeout(function () { location.reload(1); }, 5000);', 'inline');
+
+  foreach ($_SESSION['bc_subsite_pids'] as $pid => $log_file) {
+    // Check if process is still running.
+    $op = array();
+    $command = 'ps -p ' . $pid;
+    exec($command, $op);
+
+    if (!isset($op[1])) {
+      unset ($_SESSION['bc_subsite_pids'][$pid]);
+
+      // Load log and remove logfile.
+      $log = file_get_contents($log_file);
+      unlink($log_file);
+
+      watchdog('bc_subsite', 'Command pid: %pid, result: <pre>%log</pre>', array('%pid' => $pid, '%log' => $log));
+    }
+    else {
+    }
+  }
+
+  return '<p>Vent venligst...</p><div id="progressbar" class="ui-progressbar ui-widget ui-widget-content ui-corner-all ui-progressbar-indeterminate" role="progressbar" aria-valuemin="0"><div class="ui-progressbar-value ui-widget-header ui-corner-left" style="width: 100%;"><div class="ui-progressbar-overlay"></div></div></div>';
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function bc_subsites_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'subsite_node_form') {
+    // Site title cannot be altered.
+    if ($form['#node']->title) {
+      $form['title']['#disabled'] = TRUE;
+    }
+
+    // Suffix domain to form.
+    $domain_suffix = variable_get('bc_subsites_domain_suffix');
+    $form['title']['#field_suffix'] = $domain_suffix;
+
+    // Hide unwanted form stuff.
+    $form['comment_settings']['#access'] = FALSE;
+    $form['revision_information']['#access'] = FALSE;
+    $form['additional_settings']['#access'] = FALSE;
+    $form['path']['#access'] = FALSE;
+    $form['actions']['submit']['#submit'][] = 'bc_subsites_node_redirect_submit';
+  }
+  // Hide the domains field on create (to avoid race condition when running scripts in parallel)
+  if (arg(0) == 'node' && arg(1) == 'add') {
+    $form['field_domains']['#access'] = FALSE;
+  }
+}
+
+/**
+ * Custom redirect handler for subsites nodes form.
+ */
+function bc_subsites_node_redirect_submit($form, &$form_state) {
+  $form_state['redirect'] = 'admin/subsites/status';
+}
+
+/**
+ * Validate subsite node form.
+ */
+function bc_subsites_node_validate($node, $form, &$form_state) {
+  if ($node->type == 'subsite') {
+    // Validate e-mail address.
+    if (!valid_email_address($form_state['values']['field_admin_mail'][LANGUAGE_NONE][0]['value'])) {
+      form_set_error('field_admin_mail', t('Du skal indtaste en gyldig e-mail adresse'));
+    }
+
+    $domain_suffix = variable_get('bc_subsites_domain_suffix');
+
+    if (!_bc_subsites_is_valid_domain_name($node->title . $domain_suffix)) {
+      form_set_error('title', 'Det indtastede navn er ikke gyldigt. Kun små bogstaver og ingen specialtegn.');
+    }
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'subsite')
+      ->propertyCondition('title', $node->title);
+    $result = $query->execute();
+
+    if (!empty($result['node']) && !$node->nid) {
+      form_set_error('title', 'Det indtastede navn er allerede i brug.');
+    }
+
+    // Validate subsite addresses.
+    foreach ($form_state['values']['field_domains'][LANGUAGE_NONE] as $delta => $value) {
+      if (is_numeric($delta)) {
+        if ($value['value'] && !_bc_subsites_is_valid_domain_name($value['value'])) {
+          form_set_error('field_domains][' . LANGUAGE_NONE . '][' . $delta, 'Det indtastede domæne er ikke gyldigt. Kun små bogstaver og ingen specialtegn.');
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_node_presave().
+ */
+function bc_subsites_node_presave($node) {
+  $sitename = $node->title;
+  $domains = array();
+
+  $field = field_get_items('node', $node, 'field_domains');
+  foreach ($field as $delta => $value) {
+    $domains[] = $value['value'];
+  }
+
+  $field = field_get_items('node', $node, 'field_admin_mail');
+  $email = $field[0]['value'];
+
+  if ($node->is_new) {
+    bc_subsites_create($sitename, $email);
+    bc_subsites_add_domains($sitename, $domains);
+  }
+  else {
+    if ($field = field_get_items('node', $node->original, 'field_domains')) {
+
+      foreach ($field as $delta => $value) {
+        $original_domains[] = $value['value'];
+      }
+
+      bc_subsites_remove_domains($sitename, $original_domains);
+    }
+    bc_subsites_add_domains($sitename, $domains);
+  }
+}
+
+/**
+ * Overview page for subsites.
+ */
+function bc_subsites_overview() {
+  $domain_suffix = variable_get('bc_subsites_domain_suffix');
+  $subsites = node_load_multiple(array(), array('type' => 'subsite'));
+
+  $row = array();
+
+  foreach ($subsites as $subsite) {
+    $subsite_domains = array();
+
+    $subsite_admin_mail = '';
+    if ($field = field_get_items('node', $subsite, 'field_admin_mail')) {
+      $subsite_admin_mail = $field[0]['value'];
+    }
+
+
+    if ($field = field_get_items('node', $subsite, 'field_domains')) {
+      foreach ($field as $delta => $value) {
+        $subsite_domains[] = $value['value'];
+      }
+    }
+
+    $actions = array();
+    $actions[] = l(t('rediger'), 'node/' . $subsite->nid . '/edit');
+    $actions[] = l(t('slet'), 'node/' . $subsite->nid . '/delete');
+
+    $row[] = array(
+      $subsite->title . '<i>' . $domain_suffix .  '</i>',
+      implode(', ', $subsite_domains),
+      $subsite_admin_mail,
+      format_date($subsite->created, 'medium'),
+      user_load($subsite->uid)->name,
+      implode(', ', $actions),
+    );
+  }
+
+  $header = array(
+    t('Navn'),
+    t('Domæner'),
+    t('Admin e-mail'),
+    t('Oprettet'),
+    t('Af'),
+    t('Handlinger'),
+  );
+
+  $output = l(t('+ Tilføj subsite'), 'node/add/subsite');
+  $output .= theme('table', array('header' => $header, 'rows' => $row, 'empty' => 'Ingen subsites oprettet'));
+
+  if (user_access('access site reports')) {
+    $output .= l(t('Se log beskeder'), 'admin/subsites/log');
+  }
+
+  return $output;
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function bc_subsites_node_delete($node) {
+  bc_subsites_delete($node->title);
+}
+
+/**
+ * Execute subsite script.
+ */
+function bc_subsite_execute($command) {
+  $script_path = variable_get('bc_subsites_script_dir');
+  $complete_command = "sudo $script_path$command";
+
+  $log = file_directory_temp() . '/' . preg_replace("/[^a-zA-Z0-9]+/", "", $command) . rand(0, 20) . '.log';
+  $complete_command = 'nohup ' . $complete_command . ' > ' . $log . ' 2>&1 & echo $!';
+
+  $pid = exec($complete_command, $op, $return_var);
+  $_SESSION['bc_subsite_pids'][$pid] = $log;
+
+  if ($return_var > 0) {
+    drupal_set_message(t('Der skete en fejl') . ': '  . end($op), 'error');
+  }
+
+  watchdog('bc_subsite', 'Executed command: "%command", pid: <pre>%op</pre>', array('%command' => $command, '%op' => implode("\n", $op)));
+}
+
+/**
+ * Create subsite.
+ */
+function bc_subsites_create($domain, $useremail) {
+  $domain_suffix = variable_get('bc_subsites_domain_suffix');
+  bc_subsite_execute('subsite_create.sh ' . $domain . $domain_suffix . ' ' . $useremail);
+}
+
+/**
+ * Create subsite.
+ */
+function bc_subsites_delete($domain) {
+  $domain_suffix = variable_get('bc_subsites_domain_suffix');
+  bc_subsite_execute('subsite_delete.sh ' . $domain . $domain_suffix);
+}
+
+/**
+ * Remvoe domains from subsite.
+ */
+function bc_subsites_remove_domains($sitename, $domains) {
+  $domain_suffix = variable_get('bc_subsites_domain_suffix');
+
+  foreach ($domains as $domain) {
+    bc_subsite_execute('subsite_remove_domain.sh ' . $sitename . $domain_suffix . ' ' . $domain);
+  }
+}
+
+/**
+ * Add domains to subsite.
+ */
+function bc_subsites_add_domains($sitename, $domains) {
+  $domain_suffix = variable_get('bc_subsites_domain_suffix');
+
+  foreach ($domains as $domain) {
+    bc_subsite_execute('subsite_add_domain.sh ' . $sitename . $domain_suffix . ' ' . $domain);
+  }
+}
+
+/**
+ * Validate domain name.
+ */
+function _bc_subsites_is_valid_domain_name($domain_name) {
+  if (strpos($domain_name, '.') === FALSE) {
+    return FALSE;
+  }
+
+  if ($domain_name != strtolower($domain_name)) {
+    return FALSE;
+  }
+  
+  // http://stackoverflow.com/questions/1755144/how-to-validate-domain-name-in-php
+  return (preg_match("/^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*$/i", $domain_name)
+          && preg_match("/^.{1,253}$/", $domain_name)
+          && preg_match("/^[^\.]{1,63}(\.[^\.]{1,63})*$/", $domain_name));
+}
