@@ -17,7 +17,7 @@ PROFILE="os2sub"
 EMAIL="drupal@bellcom.dk"
 SCRIPTDIR="$(dirname "$0")"
 ADMINPASS=$(cat "$SCRIPTDIR/.admin_password.txt")
-VHOSTTEMPLATE="$BASEDIR/vhost-template.prod.txt"
+VHOSTTEMPLATE="$SCRIPTDIR/vhost-template.txt"
 MULTISITE="$BASEDIR/public_html"
 SITESFILE="$MULTISITE/sites/sites.php"
 TMPDIRBASE="$BASEDIR/tmp"
@@ -28,6 +28,10 @@ DBUSER="temptest"
 NOW=$(date +"%d/%m/%y %H:%M:%S")
 SQLADMIN=root
 SITEADMIN=xxx
+APACHEUSER=www-data
 
 # Version of Drupal core. Accepted values 7,8
-DRUPAL=8
+DRUPAL=[7,8]
+
+# Additional option for site-install command
+INSTALL_OPTIONS=""

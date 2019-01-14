@@ -1,6 +1,6 @@
 # DO NOT EDIT THIS VHOST. IT WILL BE MODIFIED BY SCRIPTS. (The includes for access limits and ServerAliases)
 <VirtualHost *:80>
-    <Directory /var/www/subsites.faxekommune.dk>
+    <Directory [basedir]>
        AllowOverride All
        Options FollowSymLinks
        # Uncommenting below will only allow a limited number of Bellcom IPs access to the site
@@ -10,21 +10,21 @@
     </Directory>
 
     ServerAdmin domains@bellcom.dk
-    DocumentRoot /var/www/subsites.faxekommune.dk/public_html
+    DocumentRoot [basedir]/public_html
     ServerName [domain]
 
-    CustomLog /var/www/subsites.faxekommune.dk/logs/[domain]/access.log combined
-    ErrorLog /var/www/subsites.faxekommune.dk/logs/[domain]/error.log
+    CustomLog [basedir]/logs/[domain]/access.log combined
+    ErrorLog [basedir]/logs/[domain]/error.log
 
-    php_admin_value open_basedir /var/www/subsites.faxekommune.dk:/usr/share/php
-    php_value include_path .:/var/www/subsites.faxekommune.dk
+    php_admin_value open_basedir [basedir]:/usr/share/php
+    php_value include_path .:[basedir]
 
     php_value log_errors 1
     php_value html_errors 0
     php_value display_errors 0
     php_admin_value error_reporting 2047
-    php_value error_log /var/www/subsites.faxekommune.dk/logs/[domain]/php.log
+    php_value error_log [basedir]/logs/[domain]/php.log
 
-    php_value session.save_path /var/www/subsites.faxekommune.dk/sessions/[domain]
-    php_admin_value upload_tmp_dir /var/www/subsites.faxekommune.dk/tmp/[domain]
+    php_value session.save_path [basedir]/sessions/[domain]
+    php_admin_value upload_tmp_dir [basedir]/tmp/[domain]
 </VirtualHost>

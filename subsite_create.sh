@@ -47,4 +47,3 @@ install_drupal
 set_permissions
 add_to_crontab
 add_subsiteadmin
-#mail_status "$SITENAME" "mmh@bellcom.dk"

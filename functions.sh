@@ -1,3 +1,7 @@
+if [ -f "$SCRIPTDIR"/local_function.sh ]; then
+  source "$SCRIPTDIR"/local_function.sh
+fi
+
 debug() {
   if [[ "$DEBUG" == true ]]; then
     echo "DEBUG: $1"
@@ -178,21 +182,34 @@ create_db() {
 }
 
 create_dirs() {
+  debug "Creating dirs"
   TMPDIR="$TMPDIRBASE/$SITENAME"
   LOGDIR="$LOGDIRBASE/$SITENAME"
   SESSIONDIR="$SESSIONDIRBASE/$SITENAME"
   mkdir -p "$TMPDIR"
   mkdir -p "$LOGDIR"
   mkdir -p "$SESSIONDIR"
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+   ${FUNCNAME[0]}_local
+  fi
 }
 
 create_vhost() {
   debug "Adding and enabling $SITENAME vhost"
   cp "$VHOSTTEMPLATE" "/etc/apache2/sites-available/$SITENAME.conf"
+  perl -p -i -e "s~\[basedir\]~$BASEDIR~g" "/etc/apache2/sites-available/$SITENAME.conf"
   perl -p -i -e "s/\[domain\]/$SITENAME/g" "/etc/apache2/sites-available/$SITENAME.conf"
-  a2ensite "$SITENAME" >/dev/null
-  debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  #a2ensite "$SITENAME" >/dev/null
+  ln -s /etc/apache2/sites-available/$SITENAME.conf /etc/apache2/sites-enabled/$SITENAME.conf
+  debug "Reloading Apache2..."
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    apachectl graceful
+  fi
+
+  debug "Done!"
 }
 
 install_drupal() {
@@ -221,8 +238,14 @@ install_drupal7() {
 }
 
 install_drupal8() {
+  debug "starting install Drupal"
+  # Preparing site folder
+  mkdir -p "$MULTISITE/sites/$SITENAME"
+  cp $MULTISITE/sites/default/default.settings.php  $MULTISITE/sites/$SITENAME/settings.php
+
   # Do a drush site install
-  /usr/bin/drush -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS"
+  /usr/bin/drush -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@localhost/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
+  debug "Drupal install phase succesfuly finished"
 
   # Set tmp
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.file path.temporary "$TMPDIR"
@@ -233,37 +256,38 @@ install_drupal8() {
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance css.preprocess 1
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance js.preprocess 1
   /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
-  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" dis update
+  /usr/bin/drush -q -y -r "$MULTISITE" --uri="$SITENAME" pm:uninstall update
 }
 
 set_permissions() {
   debug "Setting correct permissions"
-  /bin/chgrp -R www-data "$MULTISITE/sites/$SITENAME"
+  /bin/chgrp -R $APACHEUSER "$MULTISITE/sites/$SITENAME"
   /bin/chmod -R g+rwX "$MULTISITE/sites/$SITENAME"
   /bin/chmod g-w "$MULTISITE/sites/$SITENAME" "$MULTISITE/sites/$SITENAME/settings.php"
-  /bin/chown -R www-data "$TMPDIR"
+  /bin/chown -R $APACHEUSER "$TMPDIR"
   /bin/chmod -R g+rwX "$TMPDIR"
 }
 
 add_to_crontab() {
-  debug "Adding Drupal cron.php to www-data crontab"
+  debug "Adding Drupal cron.php to $APACHEUSER crontab"
   # if shuf is available, then run cron at random minutes
   if [ -x "/usr/bin/shuf" ]; then
     CRONMINUTE=$(shuf -i 0-59 -n 1)
   else
     CRONMINUTE=0
   fi
-  get_cron_key$DRUPAL
+  set_crontab$DRUPAL
 }
 
 set_crontab7() {
   CRONKEY=$(/usr/bin/drush -r "$MULTISITE" --uri="$SITENAME" vget cron_key | cut -d \' -f 2)
   CRONLINE="$CRONMINUTE */2 * * * /usr/bin/wget -O - -q -t 1 http://$SITENAME/cron.php?cron_key=$CRONKEY"
-  (/usr/bin/crontab -u www-data -l; echo "$CRONLINE") | /usr/bin/crontab -u www-data -
+  (/usr/bin/crontab -u $APACHEUSER -l; echo "$CRONLINE") | /usr/bin/crontab -u $APACHEUSER -
 }
 
 set_crontab8() {
-  debug "@TODO set_crontab8"
+  CRONLINE="$CRONMINUTE */2 * * * /usr/bin/drush -r $MULTISITE --uri=$SITENAME cron"
+  (/usr/bin/crontab -u $APACHEUSER -l; echo "$CRONLINE") | /usr/bin/crontab -u $APACHEUSER -
 }
 
 mail_status() {
@@ -283,10 +307,15 @@ add_subsiteadmin() {
 
 delete_vhost() {
   debug "Disabling and deleting $SITENAME vhost"
-  a2dissite "$SITENAME" >/dev/null
+  #a2dissite "$SITENAME" >/dev/null
+  rm -f "/etc/apache2/sites-enabled/$SITENAME.conf"
   rm -f "/etc/apache2/sites-available/$SITENAME.conf"
   debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    apachectl graceful
+  fi
 }
 
 delete_db() {
@@ -298,7 +327,7 @@ delete_db() {
   DBUSER=$(echo "$DBNAME" | cut -c 1-16)
   debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
   # backup first, just in case
-  /usr/local/sbin/mysql_backup.sh "$DBNAME"
+  #/usr/local/sbin/mysql_backup.sh "$DBNAME"
   /usr/bin/mysql -u root -e "DROP DATABASE $DBNAME;"
   /usr/bin/mysql -u root -e "DROP USER $DBUSER@localhost";
 }
@@ -323,15 +352,19 @@ delete_dirs() {
 }
 
 remove_from_crontab() {
-  debug "Removing Drupal cron.php from www-data crontab ($SITENAME)"
-  crontab -u www-data -l | sed "/$SITENAME\/cron.php/d" | crontab -u www-data -
+  debug "Removing Drupal cron.php from $APACHEUSER crontab ($SITENAME)"
+  crontab -u $APACHEUSER -l | sed "/$SITENAME/d" | crontab -u $APACHEUSER -
 }
 
 add_to_vhost() {
   debug "Adding $NEWDOMAIN to vhost for $SITENAME"
   /usr/bin/perl -p -i -e "s/ServerName $SITENAME/ServerName $SITENAME\n    ServerAlias $NEWDOMAIN/g" "$VHOST"
   debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    apachectl graceful
+  fi
 }
 
 add_to_sites() {
@@ -343,5 +376,9 @@ remove_from_vhost() {
   debug "Removing $REMOVEDOMAIN from vhost for $SITENAME"
   sed -i "/ServerAlias\ $REMOVEDOMAIN\$/d" "$VHOST"
   debug "Reloading Apache2"
-  /etc/init.d/apache2 reload >/dev/null
+  if [ -f /etc/init.d/apache2 ]; then
+    /etc/init.d/apache2 reload >/dev/null
+  else
+    apachectl graceful
+  fi
 }
