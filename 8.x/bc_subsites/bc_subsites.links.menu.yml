@@ -1,6 +1,6 @@
 config.subsites.menu:
   title: Subsites
   route_name: entity.subsite.collection
-  description: 'List registries'
+  description: 'List subsites'
   parent: system.admin_structure
 

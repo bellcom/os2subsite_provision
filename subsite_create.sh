@@ -19,13 +19,16 @@ else
   exit 10
 fi
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 2 ] && [ $# -ne 3 ]; then
   echo "ERROR: Usage: $0 <sitename> <email>"
   exit 10
 fi
 
 SITENAME=$(echo "$1" | tr -d ' ')
 USEREMAIL=$(echo "$2" | tr -d ' ')
+if [ $# -eq 3 ]; then
+  PROFILE=$(echo "$3" | tr -d ' ')
+fi
 DBNAME=${SITENAME//\./_}
 DBNAME=${DBNAME//\-/_}
 VHOST="/etc/apache2/sites-available/$SITENAME.conf"

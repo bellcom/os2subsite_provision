@@ -8,6 +8,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\bc_subsites\SubsiteInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
+use Drupal\Core\Messenger\MessengerTrait;
 
 /**
  * Defines the ContentEntityExample entity.
@@ -73,6 +74,7 @@ use Drupal\Core\Entity\EntityChangedTrait;
 class Subsite extends ContentEntityBase implements SubsiteInterface {
 
   use EntityChangedTrait;
+  use MessengerTrait;
 
   /**
    * {@inheritdoc}
@@ -139,6 +141,41 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
       ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', FALSE);
 
+    $profile_options = [];
+    $allowed_install_profiles = self::getConfigValue('allowed_install_profiles') ?: [];
+    if (!empty($allowed_install_profiles)) {
+      foreach ($allowed_install_profiles as $profile) {
+        $profile_path = drupal_get_path('profile', $profile);
+        $info = \Drupal::service('info_parser')->parse("$profile_path/$profile.info.yml");
+        $profile_options[$profile] = $info['name'];
+      }
+    }
+
+    $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
+    $subsites_config_dir = self::getConfigValue('subsites_config_dir');
+    if ($base_subsite_config_sync_dir && $subsites_config_dir) {
+      $profile_options['existing_config'] = t('Install from existing configuration.');
+    }
+
+    // Install profile field for the subsite.
+    $fields['profile'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Install profile'))
+      ->setDescription(t('Select profile for new subsite. If no profile selected default value from subiste configuration will be used.'))
+      ->setRequired(FALSE)
+      ->setDefaultValue('')
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'string',
+        'weight' => -5,
+      ])
+      ->setSetting('allowed_values', $profile_options)
+      ->setDisplayOptions('form', [
+        'type' => 'options_buttons',
+        'weight' => -5,
+      ])
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
     // Additional domains for subsite.
     $fields['domains'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Domains'))
@@ -194,25 +231,26 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
   /**
    * Get config value.
    */
-  public function getConfigValue($key) {
-    return \Drupal::service('config.factory')->get('bc_subsites.settings')->get($key);
+  public static function getConfigValue($key) {
+    $bc_settings = \Drupal::service('config.factory')->get('bc_subsites.settings');
+    return $bc_settings->get($key);
   }
 
   /**
    * Execute subsite script.
    */
-  public function subsiteExecute($command) {
+  private function subsiteExecute($command) {
     $script_path = $this->getConfigValue('script_dir');
     $complete_command = "sudo $script_path/$command";
 
-    $log = realpath(file_directory_temp()) . '/' . preg_replace("/[^a-zA-Z0-9]+/", "", $command) . rand(0, 20) . '.log';
+    $log = realpath(\Drupal::service('file_system')->getTempDirectory()) . '/' . preg_replace("/[^a-zA-Z0-9]+/", "", $command) . rand(0, 20) . '.log';
     $complete_command = 'nohup ' . $complete_command . ' > ' . $log . ' 2>&1 & echo $!';
 
     $pid = exec($complete_command, $op, $return_var);
     $_SESSION['bc_subsite_pids'][$pid] = $log;
 
     if ($return_var > 0) {
-      drupal_set_message(t('Der skete en fejl') . ': '  . end($op), 'error');
+      $this->messenger()->addMessage(t('Der skete en fejl') . ': '  . end($op), 'error');
     }
     $logger = \Drupal::logger('bc_subsites');
     $logger->notice(new FormattableMarkup('Executed command: "%command", pid: <pre>%op</pre>', [
@@ -224,12 +262,12 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
   /**
    * Create subsite.
    */
-  public function subsitesCreate($domain, $useremail) {
-    $this->subsiteExecute('subsite_create.sh ' . $this->getDomain($domain) . ' ' . $useremail);
+  public function subsitesCreate($domain, $useremail, $profile_options) {
+    $this->subsiteExecute('subsite_create.sh ' . $this->getDomain($domain) . ' ' . $useremail . ' "' . $profile_options . '"');
   }
 
   /**
-   * Create subsite.
+   * Delete subsite.
    */
   public function subsitesDelete($domain) {
     $this->subsiteExecute('subsite_delete.sh ' . $this->getDomain($domain));
@@ -286,9 +324,20 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     }
 
     $email = $this->admin_mail->value;
-
+    $profile = $this->profile->value;
     if ($this->isNew()) {
-      $this->subsitesCreate($sitename, $email);
+      if ($profile == 'existing_config') {
+        $subsites_config_dir = self::getConfigValue('subsites_config_dir');
+        $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
+        $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
+        if (!file_exists($destination_config_sync_dir)) {
+          $this->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
+        }
+        // @See function.sh script lines 245-249.
+        $profile = '--existing-config=' . $destination_config_sync_dir;
+      }
+
+      $this->subsitesCreate($sitename, $email, $profile);
       $this->addDomains($sitename, $domains);
     }
     else {
@@ -318,6 +367,16 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     $this->subsitesDelete($this->name->value);
 
     return parent::delete();
+  }
+
+  /**
+   * Clone config directory folder.
+   */
+  private function cloneConfigDir($source, $destination) {
+    mkdir($destination, 0755, TRUE);
+    foreach (array_diff(scandir($source), array('..', '.')) as $file) {
+      copy($source . '/' . $file, $destination . '/' . $file);
+    }
   }
 
 }
