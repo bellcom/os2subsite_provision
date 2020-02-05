@@ -4,5 +4,7 @@
     "description": "Server scripts solution to manage Drupal multisite.",
     "license": "MIT",
     "minimum-stability": "dev",
-    "require": {}
+    "require": {
+        "composer/installers": "~1.2"
+    }
 }
