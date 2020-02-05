@@ -1,5 +1,5 @@
 {
-    "name": "bellcom/os2subsite",
+    "name": "bellcom/os2subsites",
     "type": "bellcom-scripts",
     "description": "Server scripts solution to manage Drupal multisite.",
     "license": "MIT",
