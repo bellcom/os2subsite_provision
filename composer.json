@@ -1,0 +1,8 @@
+{
+    "name": "bellcom/os2subsite",
+    "type": "bellcom-scripts",
+    "description": "Server scripts solution to manage Drupal multisite.",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "require": {}
+}
