@@ -235,6 +235,10 @@ install_drupal7() {
   #$DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" l10n-update-refresh
   #$DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" l10n-update
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" dis update
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
 }
 
 install_drupal8() {
@@ -244,9 +248,13 @@ install_drupal8() {
   cp $MULTISITE/sites/default/default.settings.php  $MULTISITE/sites/$SITENAME/settings.php
   if [ $(echo ${PROFILE} | cut -d"=" -f1) == '--existing-config' ]; then
     CONFIG_DIR=$(echo ${PROFILE} | cut -d"=" -f2)
-    echo "\$config_directories[\"sync\"] = \"$CONFIG_DIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
     PROFILE=$(echo ${PROFILE} | cut -d"=" -f1)
+  else
+    CONFIG_DIR=$BASEDIR/config/$SITENAME/sync
+    mkdir -p $CONFIG_DIR
   fi
+
+  echo "\$settings['config_sync_directory'] = \"$CONFIG_DIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
 
   # Do a drush site install
   $DRUSH -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
@@ -262,6 +270,10 @@ install_drupal8() {
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance js.preprocess 1
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" pm:uninstall update
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
 }
 
 set_permissions() {
@@ -271,6 +283,11 @@ set_permissions() {
   /bin/chmod g-w "$MULTISITE/sites/$SITENAME" "$MULTISITE/sites/$SITENAME/settings.php"
   /bin/chown -R $APACHEUSER "$TMPDIR"
   /bin/chmod -R g+rwX "$TMPDIR"
+  /bin/chmod -R g+rwX "$BASEDIR/config"
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
 }
 
 add_to_crontab() {
@@ -308,6 +325,10 @@ add_subsiteadmin() {
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" user-add-role subsiteadmin subsiteadmin
   # Send single-use login link.
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" ev "_user_mail_notify('password_reset', user_load_by_mail('$USEREMAIL'));"
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
 }
 
 delete_vhost() {
@@ -353,6 +374,10 @@ delete_dirs() {
   fi
   if [ -d "$SITEDIR" ]; then
     rm -rf "$SITEDIR"
+  fi
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
   fi
 }
 
