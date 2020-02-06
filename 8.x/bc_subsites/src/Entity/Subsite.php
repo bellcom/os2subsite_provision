@@ -154,7 +154,9 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
     $subsites_config_dir = self::getConfigValue('subsites_config_dir');
     if ($base_subsite_config_sync_dir && $subsites_config_dir) {
-      $profile_options['existing_config'] = t('Install from existing configuration.');
+      $profile_options['base_config'] = t('Install from base configuration @config_path', [
+        '@config_path' => $base_subsite_config_sync_dir,
+      ]);
     }
 
     // Install profile field for the subsite.
@@ -163,6 +165,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
       ->setDescription(t('Select profile for new subsite. If no profile selected default value from subiste configuration will be used.'))
       ->setRequired(FALSE)
       ->setDefaultValue('')
+      ->setReadOnly(TRUE)
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'string',
@@ -326,7 +329,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     $email = $this->admin_mail->value;
     $profile = $this->profile->value;
     if ($this->isNew()) {
-      if ($profile == 'existing_config') {
+      if ($profile == 'base_config') {
         $subsites_config_dir = self::getConfigValue('subsites_config_dir');
         $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
         $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
