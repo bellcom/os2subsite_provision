@@ -283,6 +283,7 @@ set_permissions() {
   /bin/chmod g-w "$MULTISITE/sites/$SITENAME" "$MULTISITE/sites/$SITENAME/settings.php"
   /bin/chown -R $APACHEUSER "$TMPDIR"
   /bin/chmod -R g+rwX "$TMPDIR"
+  /bin/chown -R $APACHEUSER "$BASEDIR/config"
   /bin/chmod -R g+rwX "$BASEDIR/config"
 
   if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
@@ -374,6 +375,9 @@ delete_dirs() {
   fi
   if [ -d "$SITEDIR" ]; then
     rm -rf "$SITEDIR"
+  fi
+  if [ -d "$BASEDIR/config/$SITENAME" ]; then
+    rm -rf "$BASEDIR/config/$SITENAME"
   fi
 
   if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
