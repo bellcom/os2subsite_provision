@@ -309,7 +309,7 @@ set_crontab7() {
 }
 
 set_crontab8() {
-  CRONLINE="$CRONMINUTE */2 * * * $DRUSH -r $MULTISITE --uri=$SITENAME cron"
+  CRONLINE="$CRONMINUTE */2 * * * $DRUSH -r $MULTISITE --uri=$SITENAME cron -q"
   (/usr/bin/crontab -u $APACHEUSER -l; echo "$CRONLINE") | /usr/bin/crontab -u $APACHEUSER -
 }
 
