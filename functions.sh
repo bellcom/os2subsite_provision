@@ -404,6 +404,10 @@ add_to_vhost() {
 add_to_sites() {
   debug "Adding $NEWDOMAIN to sites.php"
   echo "\$sites['$NEWDOMAIN'] = '$SITENAME';" >> $SITESFILE
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
 }
 
 remove_from_vhost() {
