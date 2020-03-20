@@ -271,6 +271,10 @@ install_drupal8() {
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" pm:uninstall update
 
+  debug "Update translations"
+  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" locale-check
+  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" locale-update
+
   if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
     ${FUNCNAME[0]}_local
   fi
