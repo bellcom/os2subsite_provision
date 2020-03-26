@@ -255,6 +255,7 @@ install_drupal8() {
   fi
 
   echo "\$settings['config_sync_directory'] = \"$CONFIG_DIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
+  echo "\$settings['file_temp_path'] = \"$TMPDIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
 
   # Do a drush site install
   $DRUSH -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
