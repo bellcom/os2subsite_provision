@@ -128,7 +128,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
       ->setLabel(t('Administrator email'))
       ->setDescription(t('The admin email of the Subsite entity.'))
       ->setRequired(TRUE)
-      ->setDefaultValue('')
+      ->setDefaultValue(self::getConfigValue('default_profile') ?: '')
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'string',
