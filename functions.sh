@@ -2,6 +2,14 @@ if [ -f "$SCRIPTDIR"/local_function.sh ]; then
 	source "$SCRIPTDIR"/local_function.sh
 fi
 
+MYSQL_ROOT="mysql -h$DBHOST"
+
+if [ -z "${MYSQL_ROOT_PASSWORD+x}" ]; then
+  echo "Using mysql root connection without password"
+else
+  MYSQL_ROOT="$MYSQL_ROOT -uroot -p$MYSQL_ROOT_PASSWORD"
+fi
+
 debug() {
 	if [[ "$DEBUG" == true ]]; then
 		echo "DEBUG: $1"
@@ -36,56 +44,67 @@ validate_email() {
 }
 
 check_existence_create() {
-	debug "Checking if site already exists ($SITENAME)"
-	# Check if site dir already exists
-	if [ -d "$MULTISITE/sites/$SITENAME" ]; then
-		echo "ERROR: Sitedir, $MULTISITE/sites/$SITENAME already exists"
-		exit 10
-	fi
+  debug "Checking if site already exists ($SITENAME)"
+  # Check if site dir already exists
+  if [ -d "$MULTISITE/sites/$SITENAME" ]
+  then
+    echo "ERROR: Sitedir, $MULTISITE/sites/$SITENAME already exists"
+    exit 10
+  fi
 
-	# Check if site vhost alias already exists
-	if [ -f "$VHOST" ]; then
-		echo "ERROR: Vhost, $VHOST already exists"
-		exit 10
-	fi
+  # Check if site vhost alias already exists
+  if [ -f "$VHOST" ]
+  then
+    echo "ERROR: Vhost, $VHOST already exists"
+    exit 10
+  fi
 
-	# Check if database already exists
-	if [ -d "$DBDIR/$DBNAME" ]; then
-		echo "ERROR: Database, $DBDIR/$DBNAME already exists"
-		exit 10
-	fi
+  # Check if database already exists
+  local DBNAME=${SITENAME//\./_}
+  local DBNAME=${DBNAME//\-/_}
+  EXISTS=$(mysql -ss $MYSQL_ROOT -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA  WHERE SCHEMA_NAME = \"$DBNAME\";")
+  if [[ $EXISTS -ne 0 ]]
+  then
+    echo "ERROR: Database, $DBNAME already exists"
+    exit 10
+  fi
 
-	# Check if database user already exists
-	local DBNAME=${SITENAME//\./_}
-	local DBNAME=${DBNAME//\-/_}
-	DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-	EXISTS=$(mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -ss mysql -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
+  # Check if database user already exists
+  local DBNAME=${SITENAME//\./_}
+  local DBNAME=${DBNAME//\-/_}
+  DBUSER=$(echo "$DBNAME" | cut -c 1-16)
+  EXISTS=$(mysql -ss $MYSQL_ROOT -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
 
-	if [ $EXISTS -ne 0 ]; then
-		echo "ERROR: Database user, $DBUSER already exists"
-		exit 10
-	fi
+  if [[ $EXISTS -ne 0 ]]
+  then
+    echo "ERROR: Database user, $DBUSER already exists"
+    exit 10
+  fi
 }
 
 check_existence_delete() {
-	debug "Checking if site exists ($SITENAME)"
-	# Check if site dir already exists
-	if [ ! -d "$MULTISITE/sites/$SITENAME" ]; then
-		echo "ERROR: Sitedir, $MULTISITE/sites/$SITENAME doesn't exists"
-		exit 10
-	fi
+  debug "Checking if site exists ($SITENAME)"
+  # Check if site dir already exists
+  if [ ! -d "$MULTISITE/sites/$SITENAME" ]
+  then
+    echo "ERROR: Sitedir, $MULTISITE/sites/$SITENAME doesn't exists"
+    exit 10
+  fi
 
-	# Check if site vhost alias already exists
-	if [ ! -f "$VHOST" ]; then
-		echo "ERROR: Vhost, $VHOST doesn't exists"
-		exit 10
-	fi
+  # Check if site vhost alias already exists
+  if [ ! -f "$VHOST" ]
+  then
+    echo "ERROR: Vhost, $VHOST doesn't exists"
+    exit 10
+  fi
 
-	# Check if database already exists
-	if [ ! -d "$DBDIR/$DBNAME" ]; then
-		echo "ERROR: Database, $DBDIR/$DBNAME doesn't exists"
-		exit 10
-	fi
+  # Check if database already exists
+  EXISTS=$(mysql -ss $MYSQL_ROOT -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA  WHERE SCHEMA_NAME = \"$DBNAME\";")
+  if [ $EXISTS -ne 0 ]
+  then
+    echo "ERROR: Database, $DBNAME doesn't exists"
+    exit 10
+  fi
 }
 
 check_existence_add() {
@@ -155,18 +174,19 @@ remove_from_sites() {
 }
 
 create_db() {
-	local DBNAME=$1
-	DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-	debug "Creating database ($DBNAME) and database user ($DBUSER)"
-	# check for pwgen
-	command -v pwgen >/dev/null 2>&1 || {
-		echo >&2 "ERROR: pwgen is required but not installed. Aborting."
-		exit 20
-	}
-	DBPASS=$(pwgen -s 10 1)
-	# this requires a /root/.my.cnf with password set
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "CREATE DATABASE $DBNAME;"
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "GRANT ALL ON $1.* TO $DBUSER@$SERVERIP IDENTIFIED BY \"$DBPASS\""
+  local DBNAME=$1
+  DBUSER=$(echo "$DBNAME" | cut -c 1-16)
+  debug "Creating database ($DBNAME) and database user ($DBUSER)"
+  # check for pwgen
+  command -v pwgen >/dev/null 2>&1 || { echo >&2 "ERROR: pwgen is required but not installed. Aborting."; exit 20; }
+  DBPASS=$(pwgen -s 10 1)
+  # this requires a /root/.my.cnf with password set
+  /usr/bin/$MYSQL_ROOT -e "CREATE DATABASE $DBNAME;"
+  if [ -z "$DBUSER_HOST" ]
+  then
+    DBUSER_HOST="localhost"
+  fi
+  /usr/bin/$MYSQL_ROOT -e "GRANT ALL ON $1.* TO $DBUSER@\"$DBUSER_HOST\" IDENTIFIED BY \"$DBPASS\"";
 }
 
 create_dirs() {
@@ -345,17 +365,22 @@ delete_vhost() {
 }
 
 delete_db() {
-	if [ -z "$1" ]; then
-		echo "ERROR: delete_db called without an argument"
-		exit 10
-	fi
-	local DBNAME=$1
-	DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-	debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
-	# backup first, just in case
-	#/usr/local/sbin/mysql_backup.sh "$DBNAME"
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "DROP DATABASE $DBNAME;"
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "DROP USER $DBUSER@$SERVERIP;"
+  if [ -z "$1" ]; then
+    echo "ERROR: delete_db called without an argument"
+    exit 10
+  fi
+  local DBNAME=$1
+  DBUSER=$(echo "$DBNAME" | cut -c 1-16)
+  debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
+  # backup first, just in case
+  #/usr/local/sbin/mysql_backup.sh "$DBNAME"
+  /usr/bin/$MYSQL_ROOT -e "DROP DATABASE $DBNAME;"
+
+  if [ -z "$DBUSER_HOST" ]
+  then
+    DBUSER_HOST="localhost"
+  fi
+  /usr/bin/$MYSQL_ROOT -e "DROP USER $DBUSER@\"$DBUSER_HOST\"";
 }
 
 delete_dirs() {

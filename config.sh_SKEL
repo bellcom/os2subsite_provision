@@ -16,8 +16,12 @@ SERVERIP="[SERVER_IP]"
 PROFILE="os2sub"
 EMAIL="drupal@bellcom.dk"
 SCRIPTDIR="$(dirname "$0")"
-DRUSH=$(command -v drush)
-DBHOST="IP/localhost"
+DRUSH=$(which drush)
+DBHOST=localhost
+# Not required variables. Can be skipped in case of using mysql on localhost without password.
+#MYSQL_ROOT_PASSWORD=root
+# Host where subsites is going to be installed. Localhost will be used by default.
+DBUSER_HOST="localhost"
 ADMINPASS=$(cat "$SCRIPTDIR/.admin_password.txt")
 VHOSTTEMPLATE="$SCRIPTDIR/vhost-template.txt"
 MULTISITE="$BASEDIR/public_html"
@@ -25,8 +29,6 @@ SITESFILE="$MULTISITE/sites/sites.php"
 TMPDIRBASE="$BASEDIR/tmp"
 LOGDIRBASE="$BASEDIR/logs"
 SESSIONDIRBASE="$BASEDIR/sessions"
-DBDIR="/var/lib/mysql"
-DBUSER="temptest"
 NOW=$(date +"%d/%m/%y %H:%M:%S")
 SQLADMIN="[DATABASE_ADMIN]"
 SQLADMINPASS="$SCRIPTDIR/.db_admin_password.txt"
