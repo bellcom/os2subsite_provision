@@ -255,6 +255,7 @@ install_drupal8() {
   fi
 
   echo "\$settings['config_sync_directory'] = \"$CONFIG_DIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
+  echo "\$settings['file_temp_path'] = \"$TMPDIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
 
   # Do a drush site install
   $DRUSH -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
@@ -270,6 +271,10 @@ install_drupal8() {
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance js.preprocess 1
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
   $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" pm:uninstall update
+
+  debug "Update translations"
+  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" locale-check
+  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" locale-update
 
   if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
     ${FUNCNAME[0]}_local
@@ -404,6 +409,10 @@ add_to_vhost() {
 add_to_sites() {
   debug "Adding $NEWDOMAIN to sites.php"
   echo "\$sites['$NEWDOMAIN'] = '$SITENAME';" >> $SITESFILE
+
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
 }
 
 remove_from_vhost() {

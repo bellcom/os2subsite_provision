@@ -164,7 +164,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
       ->setLabel(t('Install profile'))
       ->setDescription(t('Select profile for new subsite. If no profile selected default value from subiste configuration will be used.'))
       ->setRequired(FALSE)
-      ->setDefaultValue('')
+      ->setDefaultValue(self::getConfigValue('default_profile') ?: '')
       ->setReadOnly(TRUE)
       ->setDisplayOptions('view', [
         'label' => 'above',
