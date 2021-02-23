@@ -21,7 +21,7 @@ if [ ! -d "$SOURCE_DIR" ]; then
   exit
 fi
 # Declare an array with files to copy.
-declare -a FILES=("config.sh" "local_functions.sh")
+declare -a FILES=("config.sh" "local_function.sh")
 
 # Loop through the files and copy them to os2subsite directory.
 for i in "${FILES[@]}"
