@@ -4,10 +4,14 @@ fi
 
 MYSQL_ROOT="mysql -h$DBHOST"
 
-if [ -z "${MYSQL_ROOT_PASSWORD+x}" ]; then
-  echo "Using mysql root connection without password"
+if [ -z "${DB_ROOT_PASSWORD+x}" ]; then
+  echo "Using mysql connection without password"
 else
-  MYSQL_ROOT="$MYSQL_ROOT -uroot -p$MYSQL_ROOT_PASSWORD"
+  if [ -z "${DB_ROOT_USER+x}" ]; then
+    echo "Using 'root' as mysql user for db connection"
+    DB_ROOT_USER=root
+  fi
+  MYSQL_ROOT="$MYSQL_ROOT -u$DB_ROOT_USER -p$DB_ROOT_PASSWORD"
 fi
 
 debug() {

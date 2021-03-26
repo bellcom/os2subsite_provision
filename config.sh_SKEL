@@ -19,7 +19,8 @@ SCRIPTDIR="$(dirname "$0")"
 DRUSH=$(which drush)
 DBHOST=localhost
 # Not required variables. Can be skipped in case of using mysql on localhost without password.
-#MYSQL_ROOT_PASSWORD=root
+#DB_ROOT_USER=root
+#DB_ROOT_PASSWORD=root
 # Host where subsites is going to be installed. Localhost will be used by default.
 DBUSER_HOST="localhost"
 ADMINPASS=$(cat "$SCRIPTDIR/.admin_password.txt")
