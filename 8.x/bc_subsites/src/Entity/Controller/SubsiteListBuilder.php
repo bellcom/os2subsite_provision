@@ -29,7 +29,7 @@ class SubsiteListBuilder extends EntityListBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity.manager')->getStorage($entity_type->id()),
+      $container->get('entity_type.manager')->getStorage($entity_type->id()),
       $container->get('url_generator')
     );
   }
@@ -60,7 +60,7 @@ class SubsiteListBuilder extends EntityListBuilder {
     $enabled = \Drupal::service('config.factory')->get('bc_subsites.settings')->get('enabled');
 
     if (!$enabled) {
-      drupal_set_message(t('This installation is not allowed to create subsites. See README.md.'), 'error');
+      \Drupal::messenger()->addMessage(t('This installation is not allowed to create subsites. See README.md.'), 'error');
       return [];
     }
 
@@ -88,7 +88,7 @@ class SubsiteListBuilder extends EntityListBuilder {
   public function buildRow(EntityInterface $entity) {
     /* @var $entity \Drupal\bc_subsites\Entity\Subsite */
     $row['id'] = $entity->id();
-    $row['name'] = $entity->link($entity->name->value);
+    $row['name'] = $entity->toLink($entity->name->value)->toString();
     return $row + parent::buildRow($entity);
   }
 

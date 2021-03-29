@@ -20,7 +20,7 @@ class SubsiteForm extends ContentEntityForm {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $entity = $this->getEntity();
     if (empty($entity->getConfigValue('domain_suffix'))) {
-      drupal_set_message(t('bc_subsites module is not configured. See README.md.'));
+      \Drupal::messenger()->addMessage(t('bc_subsites module is not configured. See README.md.'));
       return $form;
     }
 
