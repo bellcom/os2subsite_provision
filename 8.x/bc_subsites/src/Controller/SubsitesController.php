@@ -44,17 +44,17 @@ class SubsitesController extends ControllerBase {
         // Load log and remove logfile.
         unlink($log_file);
 
-        $mesage = new FormattableMarkup('Command pid: %pid, result: <pre>%log</pre>', [
+        $message = new FormattableMarkup('Command pid: %pid, result: <pre>%log</pre>', [
           '%pid' => $pid,
           '%log' => $log
         ]);
-        drupal_set_message($mesage);
+        \Drupal::messenger()->addMessage($message);
         $logger = \Drupal::logger('bc_subsites');
-        $logger->notice($mesage);
+        $logger->notice($message);
         return RedirectResponse::create(Url::fromRoute('entity.subsite.collection')->toString());
       }
     }
-    $build['result']['#markup'] = '<p>Wait please...</p><div id="updateprogress" class="progress" 
+    $build['result']['#markup'] = '<p>Wait please...</p><div id="updateprogress" class="progress"
 aria-live="polite"><div class="progress__label"></div><div class="progress__track"><div class="progress__bar" style="width: 100%;"></div></div></div>';
     if (!empty($log)) {
       $build['log'] = [
