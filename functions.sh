@@ -79,7 +79,7 @@ check_existence_create() {
   DBUSER=$(echo "$DBNAME" | cut -c 1-16)
   EXISTS=$(mysql -ss $MYSQL_ROOT -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
 
-  if [ -n "$EXISTS" ]
+  if [[ "$EXISTS" -ne 0 ]]
   then
     echo "ERROR: Database user, $DBUSER already exists"
     exit 10
@@ -165,10 +165,12 @@ add_to_hosts() {
 }
 
 remove_from_hosts() {
-	local DOMAIN="$1"
-	# TODO, also remove all ServerAlias lines?
-	debug "Removing $DOMAIN from /etc/hosts"
-	sed -i "/$SERVERIP $DOMAIN/d" /etc/hosts
+  local DOMAIN="$1"
+# TODO, also remove all ServerAlias lines?
+  debug "Removing $DOMAIN from /etc/hosts"
+  cp -f /etc/hosts /tmp/hosts.tmp
+  sed -i "/$SERVERIP $DOMAIN/d" /tmp/hosts.tmp
+  cp -f /tmp/hosts.tmp /etc/hosts
 }
 
 remove_from_sites() {
