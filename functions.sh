@@ -68,7 +68,7 @@ check_existence_create() {
   local DBNAME=${SITENAME//\./_}
   local DBNAME=${DBNAME//\-/_}
   EXISTS=$(mysql -ss $MYSQL_ROOT -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA  WHERE SCHEMA_NAME = \"$DBNAME\";")
-  if [[ $EXISTS -ne 0 ]]
+  if [ -n "$EXISTS" ]
   then
     echo "ERROR: Database, $DBNAME already exists"
     exit 10
@@ -80,7 +80,7 @@ check_existence_create() {
   DBUSER=$(echo "$DBNAME" | cut -c 1-16)
   EXISTS=$(mysql -ss $MYSQL_ROOT -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
 
-  if [[ $EXISTS -ne 0 ]]
+  if [ -n "$EXISTS" ]
   then
     echo "ERROR: Database user, $DBUSER already exists"
     exit 10
@@ -105,7 +105,7 @@ check_existence_delete() {
 
   # Check if database already exists
   EXISTS=$(mysql -ss $MYSQL_ROOT -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA  WHERE SCHEMA_NAME = \"$DBNAME\";")
-  if [ $EXISTS -ne 0 ]
+  if [ -z "$EXISTS" ]
   then
     echo "ERROR: Database, $DBNAME doesn't exists"
     exit 10
