@@ -28,7 +28,8 @@ SESSIONDIRBASE="$BASEDIR/sessions"
 DBDIR="/var/lib/mysql"
 DBUSER="temptest"
 NOW=$(date +"%d/%m/%y %H:%M:%S")
-SQLADMIN=root
+SQLADMIN="[DATABASE_ADMIN]"
+SQLADMINPASS="$SCRIPTDIR/.db_admin_password.txt"
 SITEADMIN=xxx
 APACHEUSER=www-data
 

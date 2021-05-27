@@ -63,7 +63,7 @@ check_existence_create() {
   local DBNAME=${SITENAME//\./_}
   local DBNAME=${DBNAME//\-/_}
   DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-  EXISTS=$(mysql -ss mysql -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
+  EXISTS=$(mysql -u $SQLADMIN -p$SQLADMINPASS -h $DBIP -ss mysql -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
 
   if [ $EXISTS -ne 0 ]
   then
@@ -177,8 +177,8 @@ create_db() {
   command -v pwgen >/dev/null 2>&1 || { echo >&2 "ERROR: pwgen is required but not installed. Aborting."; exit 20; }
   DBPASS=$(pwgen -s 10 1)
   # this requires a /root/.my.cnf with password set
-  /usr/bin/mysql -u root -e "CREATE DATABASE $DBNAME;"
-  /usr/bin/mysql -u root -e "GRANT ALL ON $1.* TO $DBUSER@localhost IDENTIFIED BY \"$DBPASS\"";
+  /usr/bin/mysql -u $SQLADMIN -p$SQLADMINPASS -h $DBHOST -e "CREATE DATABASE $DBNAME;"
+  /usr/bin/mysql -u $SQLADMIN -p$SQLADMINPASS -h $DBHOSt -e "GRANT ALL ON $1.* TO $DBUSER@$SERVERIP IDENTIFIED BY \"$DBPASS\"";
 }
 
 create_dirs() {
@@ -360,8 +360,8 @@ delete_db() {
   debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
   # backup first, just in case
   #/usr/local/sbin/mysql_backup.sh "$DBNAME"
-  /usr/bin/mysql -u root -e "DROP DATABASE $DBNAME;"
-  /usr/bin/mysql -u root -e "DROP USER $DBUSER@localhost";
+  /usr/bin/mysql -u $SQLADMIN -p$SQLADMINPASS -h $DBHOST -e "DROP DATABASE $DBNAME;"
+  /usr/bin/mysql -u $SQLADMIN -p$SQLADMINPASS -h $DBHOST -e "DROP USER $DBUSER@$SERVERIP;"
 }
 
 delete_dirs() {
