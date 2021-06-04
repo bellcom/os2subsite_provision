@@ -59,7 +59,7 @@ check_existence_create() {
 	local DBNAME=${SITENAME//\./_}
 	local DBNAME=${DBNAME//\-/_}
 	DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-	EXISTS=$(mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBIP}" -ss mysql -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
+	EXISTS=$(mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -ss mysql -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
 
 	if [ $EXISTS -ne 0 ]; then
 		echo "ERROR: Database user, $DBUSER already exists"
@@ -165,8 +165,8 @@ create_db() {
 	}
 	DBPASS=$(pwgen -s 10 1)
 	# this requires a /root/.my.cnf with password set
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBIP}" -e "CREATE DATABASE $DBNAME;"
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBIP}" -e "GRANT ALL ON $1.* TO $DBUSER@$SERVERIP IDENTIFIED BY \"$DBPASS\""
+	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "CREATE DATABASE $DBNAME;"
+	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "GRANT ALL ON $1.* TO $DBUSER@$SERVERIP IDENTIFIED BY \"$DBPASS\""
 }
 
 create_dirs() {
@@ -207,7 +207,7 @@ install_drupal() {
 
 install_drupal7() {
 	# Do a drush site install
-	$DRUSH -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBIP/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS"
+	$DRUSH -q -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS"
 
 	# Set tmp
 	$DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" vset file_temporary_path "$TMPDIR"
@@ -246,7 +246,7 @@ install_drupal8() {
 	echo "\$settings['file_temp_path'] = \"$TMPDIR\";" >>$MULTISITE/sites/$SITENAME/settings.php
 
 	# Do a drush site install
-	$DRUSH -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBIP/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
+	$DRUSH -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
 	debug "Drupal install phase succesfuly finished"
 
 	# Set tmp
@@ -354,8 +354,8 @@ delete_db() {
 	debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
 	# backup first, just in case
 	#/usr/local/sbin/mysql_backup.sh "$DBNAME"
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBIP}" -e "DROP DATABASE $DBNAME;"
-	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBIP}" -e "DROP USER $DBUSER@$SERVERIP;"
+	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "DROP DATABASE $DBNAME;"
+	/usr/bin/mysql -u "${SQLADMIN}" -p"${SQLADMINPASS}" -h "${DBHOST}" -e "DROP USER $DBUSER@$SERVERIP;"
 }
 
 delete_dirs() {
