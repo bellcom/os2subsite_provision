@@ -48,7 +48,7 @@ class SubsitesController extends ControllerBase {
           '%pid' => $pid,
           '%log' => $log
         ]);
-        drupal_set_message($mesage);
+        $this->messenger()->addMessage($mesage);
         $logger = \Drupal::logger('bc_subsites');
         $logger->notice($mesage);
         return RedirectResponse::create(Url::fromRoute('entity.subsite.collection')->toString());
