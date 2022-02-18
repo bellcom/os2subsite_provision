@@ -325,7 +325,7 @@ create_vhost() {
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    apachectl graceful
+    echo "apachectl graceful"
   fi
 
   debug "Done!"
@@ -468,7 +468,7 @@ delete_vhost() {
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    apachectl graceful
+    echo "apachectl graceful"
   fi
 }
 
@@ -520,7 +520,7 @@ add_to_vhost() {
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
   else
-    apachectl graceful
+    echo "apachectl graceful"
   fi
 }
 

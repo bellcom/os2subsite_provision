@@ -5,11 +5,17 @@ set -o nounset
 DEBUG=true
 
 SCRIPTDIR="$(dirname "$0")"
-if [ -f "$SCRIPTDIR"/config.sh ]; then
-  source "$SCRIPTDIR"/config.sh
+
+if [ -v USE_ENV_CONFIG ]; then
+  echo "Using environment configuration. Make sure that all variables from config.sh are set in .env file of proper environment settings."
 else
-  echo "ERROR: please create a config.sh file"
-  exit 10
+  if [ -f "$SCRIPTDIR"/config.sh ]; then
+    echo "Using configuration from file"
+    source "$SCRIPTDIR"/config.sh
+  else
+    echo "ERROR: please create a config.sh file"
+    exit 10
+  fi
 fi
 
 if [ -f "$SCRIPTDIR"/functions.sh ]; then
@@ -26,9 +32,6 @@ fi
 
 SITENAME=$(echo "$1" | tr -d ' ')
 USEREMAIL=$(echo "$2" | tr -d ' ')
-if [ $# -eq 3 ]; then
-  PROFILE=$(echo "$3" | tr -d ' ')
-fi
 DBNAME=${SITENAME//\./_}
 DBNAME=${DBNAME//\-/_}
 VHOST="/etc/apache2/sites-available/$SITENAME.conf"
