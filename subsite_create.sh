@@ -42,6 +42,7 @@ fi
 validate_sitename "$SITENAME"
 validate_email "$USEREMAIL"
 check_existence_create "$SITENAME"
+init "$SITENAME"
 create_db "$DBNAME"
 create_dirs
 create_vhost

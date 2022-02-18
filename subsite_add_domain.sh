@@ -36,6 +36,7 @@ fi
 
 validate_domainname "$NEWDOMAIN"
 check_existence_add
+init "$SITENAME"
 add_to_vhost
 add_to_hosts "$NEWDOMAIN"
 add_to_sites

@@ -36,6 +36,7 @@ fi
 
 validate_domainname "$REMOVEDOMAIN"
 check_existence_remove
+init "$SITENAME"
 remove_from_vhost
 remove_from_hosts "$REMOVEDOMAIN"
 remove_from_sites "$REMOVEDOMAIN"

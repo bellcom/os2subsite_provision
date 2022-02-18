@@ -19,12 +19,16 @@ else
   exit 10
 fi
 
-if [ $# -ne 1 ]; then
-  echo "ERROR: Usage: $0 <sitename>"
+if [ $# -ne 2 ] && [ $# -ne 3 ]; then
+  echo "ERROR: Usage: $0 <sitename> <email>"
   exit 10
 fi
 
 SITENAME=$(echo "$1" | tr -d ' ')
+USEREMAIL=$(echo "$2" | tr -d ' ')
+if [ $# -eq 3 ]; then
+  PROFILE=$(echo "$3" | tr -d ' ')
+fi
 DBNAME=${SITENAME//\./_}
 DBNAME=${DBNAME//\-/_}
 VHOST="/etc/apache2/sites-available/$SITENAME.conf"
@@ -35,14 +39,4 @@ if [[ "$USER" != "root" ]]; then
   exit 10
 fi
 
-
-validate_sitename "$SITENAME"
-check_existence_delete
-init "$SITENAME"
-delete_vhost
-delete_dirs
-delete_db "$DBNAME"
-# TODO, also remove possible ServerAlias domains from the hosts file? Or do that from web?
-remove_from_hosts "$SITENAME"
-remove_from_crontab
-remove_from_sites "$SITENAME"
+phase_1 $SITENAME

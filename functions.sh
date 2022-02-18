@@ -8,6 +8,66 @@ debug() {
   fi
 }
 
+init() {
+  local SITENAME="$1"
+  TMPDIR="$TMPDIRBASE/$SITENAME"
+  LOGDIR="$LOGDIRBASE/$SITENAME"
+  SESSIONDIR="$SESSIONDIRBASE/$SITENAME"
+  SITEDIR="$MULTISITE/sites/$SITENAME"
+}
+
+# Runs first phase of subsite creation.
+phase_1 () {
+  init "$SITENAME"
+  validate_sitename "$SITENAME"
+  validate_email "$USEREMAIL"
+  check_existence_create "$SITENAME"
+  create_db "$DBNAME"
+  create_dirs
+  create_vhost
+  add_to_hosts "$SITENAME"
+  create_creadentials_source "$SITENAME"
+}
+
+# Pick ups credentials from source file and continuing subsite creation.
+phase_2 () {
+  read_creadentials_source "$SITENAME"
+  init "$SITENAME"
+  install_drupal
+  set_permissions
+  add_to_crontab
+  add_subsiteadmin
+}
+
+# Creates credentials source file for external provisioning usage.
+create_creadentials_source () {
+  local SITENAME="$1"
+  if [ -v EXTERNAL_DB_PROVISIONING ]
+  then
+    # Checking if credentials sources path is defined
+    check SOURCES_PATH_EXISTS
+    echo "SITENAME=${SITENAME}
+DBNAME=${DBNAME}
+DBUSER=${DBUSER}
+DBPASS=${DBPASS}" > $PROVISIONING_SOURCES_PATH/$SITENAME
+  else
+    echo "NOTICE: Internal DB provisioning. No need for credentials sources file."
+  fi
+}
+
+# Read credentials from source file.
+read_creadentials_source () {
+  local SITENAME="$1"
+  if [ -v EXTERNAL_DB_PROVISIONING ]
+  then
+    # Checking if credentials sources path is defined
+    check CREDENTIALS_SOURCES
+    source $PROVISIONING_SOURCES_PATH/$SITENAME
+  else
+    echo "NOTICE: Internal DB provisioning. No need to read credentials sources file."
+  fi
+}
+
 validate_sitename() {
   local SITENAME="$1"
   debug "Checking site name ($SITENAME)"
@@ -36,39 +96,95 @@ validate_email() {
   fi
 }
 
+# Generic check function.
+# Example of using check [check_type]
+check() {
+  local CHECK_TYPE="$1"
+
+  case $CHECK_TYPE in
+
+    SITE_DIR_EXISTS)
+      if [ -d "$MULTISITE/sites/$SITENAME" ]
+      then
+        echo "Sitedir, $MULTISITE/sites/$SITENAME already exists"
+        exit 10
+      fi
+      ;;
+
+    VHOST_EXISTS)
+      if [ -f "$VHOST" ]
+      then
+        echo "ERROR: Vhost, $VHOST already exists"
+        exit 10
+      fi
+      ;;
+
+    DB_CONNECTION)
+      ERROR=$(mysql -u$DBUSER -p$DBPASS $DBNAME -h$DBHOST -e ";")
+      if ! [ -z "$ERROR" ]
+      then
+        echo $ERROR
+        exit 10
+      fi
+      ;;
+
+    SOURCES_PATH_EXISTS)
+      if ! [ -v PROVISIONING_SOURCES_PATH ]
+      then
+        echo "ERROR: Credentials sources directory is not defined"
+        exit 10
+      else
+        if ! [ -d "$PROVISIONING_SOURCES_PATH" ]
+        then
+          echo "ERROR: Credentials sources directory doesn't exist"
+          exit 10
+        fi
+      fi
+      ;;
+
+    CREDENTIALS_SOURCES)
+      check SOURCES_PATH_EXISTS
+      if ! [ -f "$PROVISIONING_SOURCES_PATH/$SITENAME" ]
+      then
+        echo "ERROR: Credentials sources file is not exists"
+        exit 10
+      fi
+      ;;
+
+  esac
+
+}
+
 check_existence_create() {
   debug "Checking if site already exists ($SITENAME)"
   # Check if site dir already exists
-  if [ -d "$MULTISITE/sites/$SITENAME" ]
-  then
-    echo "ERROR: Sitedir, $MULTISITE/sites/$SITENAME already exists"
-    exit 10
-  fi
+  check SITE_DIR_EXISTS
 
   # Check if site vhost alias already exists
-  if [ -f "$VHOST" ]
-  then
-    echo "ERROR: Vhost, $VHOST already exists"
-    exit 10
-  fi
+  check VHOST_EXISTS
 
-  # Check if database already exists
-  if [ -d "$DBDIR/$DBNAME" ]
+  if  [ -v EXTERNAL_DB_PROVISIONING ]
   then
-    echo "ERROR: Database, $DBDIR/$DBNAME already exists"
-    exit 10
-  fi
+    echo "NOTICE: External DB provisioning is used. Can not check if database or database user exists."
+  else
+    # Check if database already exists
+    if [ -d "$DBDIR/$DBNAME" ]
+    then
+      echo "ERROR: Database, $DBDIR/$DBNAME already exists"
+      exit 10
+    fi
 
-  # Check if database user already exists
-  local DBNAME=${SITENAME//\./_}
-  local DBNAME=${DBNAME//\-/_}
-  DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-  EXISTS=$(mysql -ss mysql -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
+    # Check if database user already exists
+    local DBNAME=${SITENAME//\./_}
+    local DBNAME=${DBNAME//\-/_}
+    DBUSER=$(echo "$DBNAME" | cut -c 1-16)
+    EXISTS=$(mysql -ss mysql -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = \"$DBUSER\");")
 
-  if [ $EXISTS -ne 0 ]
-  then
-    echo "ERROR: Database user, $DBUSER already exists"
-    exit 10
+    if [ $EXISTS -ne 0 ]
+    then
+      echo "ERROR: Database user, $DBUSER already exists"
+      exit 10
+    fi
   fi
 }
 
@@ -172,20 +288,23 @@ remove_from_sites() {
 create_db() {
   local DBNAME=$1
   DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-  debug "Creating database ($DBNAME) and database user ($DBUSER)"
   # check for pwgen
   command -v pwgen >/dev/null 2>&1 || { echo >&2 "ERROR: pwgen is required but not installed. Aborting."; exit 20; }
   DBPASS=$(pwgen -s 10 1)
-  # this requires a /root/.my.cnf with password set
-  /usr/bin/mysql -u root -e "CREATE DATABASE $DBNAME;"
-  /usr/bin/mysql -u root -e "GRANT ALL ON $1.* TO $DBUSER@localhost IDENTIFIED BY \"$DBPASS\"";
+
+  if  [ -v EXTERNAL_DB_PROVISIONING ]
+  then
+    echo "NOTICE: External DB provisioning is used. The file with DB credentials would be created.."
+  else
+    debug "Creating database ($DBNAME) and database user ($DBUSER)"
+    # this requires a /root/.my.cnf with password set
+    /usr/bin/mysql -u root -e "CREATE DATABASE $DBNAME;"
+    /usr/bin/mysql -u root -e "GRANT ALL ON $1.* TO $DBUSER@localhost IDENTIFIED BY \"$DBPASS\"";
+  fi
 }
 
 create_dirs() {
   debug "Creating dirs"
-  TMPDIR="$TMPDIRBASE/$SITENAME"
-  LOGDIR="$LOGDIRBASE/$SITENAME"
-  SESSIONDIR="$SESSIONDIRBASE/$SITENAME"
   mkdir -p "$TMPDIR"
   mkdir -p "$LOGDIR"
   mkdir -p "$SESSIONDIR"
@@ -242,7 +361,10 @@ install_drupal7() {
 }
 
 install_drupal8() {
-  debug "starting install Drupal"
+  debug "Checking db connection before staring installation process."
+  check DB_CONNECTION
+
+  debug "Starting install Drupal"
   # Preparing site folder
   mkdir -p "$MULTISITE/sites/$SITENAME"
   cp $MULTISITE/sites/default/default.settings.php  $MULTISITE/sites/$SITENAME/settings.php
@@ -365,10 +487,6 @@ delete_db() {
 }
 
 delete_dirs() {
-  TMPDIR="$TMPDIRBASE/$SITENAME"
-  LOGDIR="$LOGDIRBASE/$SITENAME"
-  SESSIONDIR="$SESSIONDIRBASE/$SITENAME"
-  SITEDIR="$MULTISITE/sites/$SITENAME"
   if [ -d "$TMPDIR" ]; then
     rm -rf "$TMPDIR"
   fi
