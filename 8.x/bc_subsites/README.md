@@ -11,6 +11,7 @@ Setting keys:
 * base_subsite_config_dir - path to base subsite configuration files for option to install from an exsisting configuration;
 * allowed_install_profiles - array with allowed profiles to select for subsite;
 * default_profile - default value for installation profile.
+* external_db_provisioning - external db provisioning flag for activates two phases provisioning.
 
 Example:
 ```
@@ -25,5 +26,6 @@ $config['bc_subsites.settings'] = [
     'minimal',
   ],
   'default_profile' => 'base_config',
+  'external_db_provisioning' => FALSE,
 ];
 ```
