@@ -18,13 +18,6 @@ else
   fi
 fi
 
-if [ -f "$SCRIPTDIR"/config.sh ]; then
-  source "$SCRIPTDIR"/config.sh
-else
-  echo "ERROR: please create a config.sh file"
-  exit 10
-fi
-
 if [ -f "$SCRIPTDIR"/functions.sh ]; then
   source "$SCRIPTDIR"/functions.sh
 else
@@ -39,9 +32,6 @@ fi
 
 SITENAME=$(echo "$1" | tr -d ' ')
 USEREMAIL=$(echo "$2" | tr -d ' ')
-if [ $# -eq 3 ]; then
-  PROFILE=$(echo "$3" | tr -d ' ')
-fi
 DBNAME=${SITENAME//\./_}
 DBNAME=${DBNAME//\-/_}
 VHOST="/etc/apache2/sites-available/$SITENAME.conf"
@@ -52,15 +42,4 @@ if [[ "$USER" != "root" ]]; then
   exit 10
 fi
 
-validate_sitename "$SITENAME"
-validate_email "$USEREMAIL"
-check_existence_create "$SITENAME"
-init "$SITENAME"
-create_db "$DBNAME"
-create_dirs
-create_vhost
-add_to_hosts "$SITENAME"
-install_drupal
-set_permissions
-add_to_crontab
-add_subsiteadmin
+phase_1 $SITENAME

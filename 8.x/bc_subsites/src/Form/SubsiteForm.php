@@ -35,8 +35,58 @@ class SubsiteForm extends ContentEntityForm {
     }
 
     $form['#validate'][] = '::validateSubsite';
+
+    $provisioning_state = $entity->getProvisioningState();
+    if ($entity->isNew() && $entity->getConfigValue('external_db_provisioning')) {
+        $provisioning_state = 'phase1';
+    }
+
+    switch ($provisioning_state) {
+      case 'phase1':
+        $form['actions']['submit']['#access'] = FALSE;
+        $form['actions']['phase1'] = [
+          '#type' => 'submit',
+          '#value' => $this->t('Phase 1'),
+          '#submit' => ['::submitPhase1'],
+          '#button_type' => 'primary',
+        ];
+        break;
+
+      case 'phase2':
+        $form['actions']['submit']['#access'] = FALSE;
+        $form['actions']['phase2'] = [
+          '#type' => 'submit',
+          '#value' => $this->t('Phase 2'),
+          '#submit' => ['::submitPhase2'],
+          '#button_type' => 'primary',
+        ];
+        break;
+    }
+
+
     return $form;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitPhase1(array $form, FormStateInterface $form_state) {
+    $entity = $this->getEntity();
+    $entity->set('provisioning_state', 'phase1');
+    $this->submitForm($form, $form_state);
+    $this->save($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitPhase2(array $form, FormStateInterface $form_state) {
+    $entity = $this->getEntity();
+    $entity->set('provisioning_state', 'phase2');
+    $this->submitForm($form, $form_state);
+    $this->save($form, $form_state);
+  }
+
 
   /**
    * {@inheritdoc}

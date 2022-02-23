@@ -218,6 +218,13 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
       ->setLabel(t('Changed'))
       ->setDescription(t('The time that the entity was last edited.'));
 
+    // Provisioning state of the subsite.
+    $fields['provisioning_state'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Provisioning state'))
+      ->setRequired(TRUE)
+      ->setDefaultValue('full')
+      ->setDisplayConfigurable('view', TRUE);
+
     return $fields;
   }
 
@@ -229,6 +236,20 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
       $name = $this->name->value;
     }
     return $name . '.' . $this->getConfigValue('domain_suffix');
+  }
+
+  /**
+   * Get provisioning_state.
+   */
+  public function getProvisioningState() {
+    return $this->provisioning_state->value;
+  }
+
+  /**
+   * Set provisioning_state.
+   */
+  public function setProvisioningState($value) {
+    return $this->set('provisioning_state', $value);
   }
 
   /**
@@ -267,6 +288,20 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
    */
   public function subsitesCreate($domain, $useremail, $profile_options) {
     $this->subsiteExecute('subsite_create.sh ' . $this->getDomain($domain) . ' ' . $useremail . ' "' . $profile_options . '"');
+  }
+
+  /**
+   * Run phase2 on subsite.
+   */
+  public function subsitesPhase1($domain, $useremail, $profile_options) {
+    $this->subsiteExecute('phase1.sh ' . $this->getDomain($domain) . ' ' . $useremail);
+  }
+
+  /**
+   * Run phase2 on subsite.
+   */
+  public function subsitesPhase2($domain, $useremail, $profile_options) {
+    $this->subsiteExecute('phase2.sh ' . $this->getDomain($domain) . ' ' . $useremail . ' "' . $profile_options . '"');
   }
 
   /**
@@ -328,36 +363,65 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
 
     $email = $this->admin_mail->value;
     $profile = $this->profile->value;
-    if ($this->isNew()) {
-      if ($profile == 'base_config') {
-        $subsites_config_dir = self::getConfigValue('subsites_config_dir');
-        $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
-        $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
-        if (!file_exists($destination_config_sync_dir)) {
-          $this->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
-        }
-        // @See function.sh script lines 245-249.
-        $profile = '--existing-config=' . $destination_config_sync_dir;
-      }
+    switch ($this->getProvisioningState()) {
+      case 'phase1':
+        $this->subsitesPhase1($sitename, $email, $profile);
+        // @TODO Get error status after phase1 and change state on it
+        $this->set('provisioning_state', 'phase2');
+        break;
 
-      $this->subsitesCreate($sitename, $email, $profile);
-      $this->addDomains($sitename, $domains);
-    }
-    else {
-      $original_domains = [];
-      if (!empty($this->original->domains->value)) {
-        foreach (explode("\r\n", $this->original->domains->value) as $delta => $value) {
-          if (empty($value)) {
-            continue;
+      case 'phase2':
+        if ($profile == 'base_config') {
+          $subsites_config_dir = self::getConfigValue('subsites_config_dir');
+          $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
+          $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
+          if (!file_exists($destination_config_sync_dir)) {
+            $this->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
           }
-          $original_domains[] = $value;
+          // @See function.sh script lines 245-249.
+          $profile = '--existing-config=' . $destination_config_sync_dir;
         }
-      }
 
-      if (!empty($original_domains)) {
-        $this->removeDomains($sitename, $original_domains);
-      }
-      $this->addDomains($sitename, $domains);
+        $this->subsitesPhase2($sitename, $email, $profile);
+        $this->addDomains($sitename, $domains);
+        // @TODO Get error status after phase2 and change state on it
+        $this->set('provisioning_state', 'completed');
+        break;
+
+      case 'full':
+        if ($profile == 'base_config') {
+          $subsites_config_dir = self::getConfigValue('subsites_config_dir');
+          $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
+          $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
+          if (!file_exists($destination_config_sync_dir)) {
+            $this->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
+          }
+          // @See function.sh script lines 245-249.
+          $profile = '--existing-config=' . $destination_config_sync_dir;
+        }
+
+        $this->subsitesCreate($sitename, $email, $profile);
+        $this->addDomains($sitename, $domains);
+
+        $this->set('provisioning_state', 'completed');
+        break;
+
+      case 'completed':
+        $original_domains = [];
+        if (!empty($this->original->domains->value)) {
+          foreach (explode("\r\n", $this->original->domains->value) as $delta => $value) {
+            if (empty($value)) {
+              continue;
+            }
+            $original_domains[] = $value;
+          }
+        }
+
+        if (!empty($original_domains)) {
+          $this->removeDomains($sitename, $original_domains);
+        }
+        $this->addDomains($sitename, $domains);
+        break;
     }
 
     return parent::save();
@@ -382,4 +446,12 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     }
   }
 
+  public static function getProvisioningStates() {
+    return [
+      'phase1' => t('Phase 1'),
+      'phase2' => t('Phase 2'),
+      'full' => t('Full'),
+      'completed' => t('Completed'),
+    ];
+  }
 }

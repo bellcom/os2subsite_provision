@@ -2,6 +2,7 @@
 
 namespace Drupal\bc_subsites\Entity\Controller;
 
+use Drupal\bc_subsites\Entity\Subsite;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityListBuilder;
@@ -79,6 +80,9 @@ class SubsiteListBuilder extends EntityListBuilder {
   public function buildHeader() {
     $header['id'] = $this->t('SubsiteID');
     $header['name'] = $this->t('Name');
+    if (Subsite::getConfigValue('external_db_provisioning')) {
+      $header['provisioning_state'] = $this->t('State');
+    }
     return $header + parent::buildHeader();
   }
 
@@ -89,6 +93,10 @@ class SubsiteListBuilder extends EntityListBuilder {
     /* @var $entity \Drupal\bc_subsites\Entity\Subsite */
     $row['id'] = $entity->id();
     $row['name'] = $entity->toLink($entity->name->value)->toString();
+    $provisioning_states = Subsite::getProvisioningStates();
+    if (Subsite::getConfigValue('external_db_provisioning')) {
+      $row['provisioning_state'] = isset($provisioning_states[$entity->getProvisioningState()]) ? $provisioning_states[$entity->getProvisioningState()] : '';
+    }
     return $row + parent::buildRow($entity);
   }
 
