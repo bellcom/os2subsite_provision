@@ -261,6 +261,18 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
   }
 
   /**
+   * Gets variable value from shell script by using source command.
+   */
+  public static function getScriptsConfigValue($key, $file = FALSE) {
+    if (empty($file)) {
+      $file = '../scripts/os2subsites_provision/config.sh';
+    }
+    $complete_command = 'bash -c \'source ' . $file . ' && echo $' . $key . '\'';
+    exec($complete_command, $op, $return_var);
+    return isset($op[0]) ? $op[0] : NULL ;
+  }
+
+  /**
    * Execute subsite script.
    */
   private function subsiteExecute($command) {

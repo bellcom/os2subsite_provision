@@ -2,6 +2,7 @@
 
 namespace Drupal\bc_subsites\Form;
 
+use Drupal\bc_subsites\Entity\Subsite;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
@@ -60,6 +61,19 @@ class SubsiteForm extends ContentEntityForm {
           '#submit' => ['::submitPhase2'],
           '#button_type' => 'primary',
         ];
+
+        $subsite_credentials = file_get_contents($this->getSubsitesCredentialsFilePath($entity));
+        $form['subsite_credentials'] = ['#markup' => '<strong>' . $this->t('WARNING: Subsite credentials file not found or empty.'). '</strong>'];
+        if (!empty($subsite_credentials)) {
+          // Removing SITENAME line from subsite credentials file.
+          $subsite_credentials = str_replace('SITENAME=' . $entity->getDomain() . PHP_EOL, '', $subsite_credentials);
+          $form['subsite_credentials'] = [
+            '#title' => $this->t('Subsite creadentials'),
+            '#type' => 'textarea',
+            '#default_value' => $subsite_credentials,
+            '#element_validate' => ['::validateDbCredentials'],
+          ];
+        }
         break;
     }
 
@@ -78,11 +92,38 @@ class SubsiteForm extends ContentEntityForm {
   }
 
   /**
+   * Validate db credentials handler
+   */
+  public function validateDbCredentials(array $element, FormStateInterface $form_state) {
+    $entity = $this->getEntity();
+    $db_credentials = str_replace(["\r\n", ' '], [PHP_EOL, ''], $element['#value']);
+    $tmp_filename = \Drupal::service('file_system')->getTempDirectory() . DIRECTORY_SEPARATOR . $entity->getDomain();
+    file_put_contents($tmp_filename, $db_credentials);
+    $db_host = Subsite::getScriptsConfigValue('DBHOST');
+    $db_name = Subsite::getScriptsConfigValue('DBNAME', $tmp_filename);
+    $db_user = Subsite::getScriptsConfigValue('DBUSER', $tmp_filename);
+    $db_pass = Subsite::getScriptsConfigValue('DBPASS', $tmp_filename);
+    unlink($tmp_filename);
+    $complete_command = '$(mysql -u' . $db_user . ' -p' . $db_pass . ' ' . $db_name . ' -h' . $db_host . ' -e ";")';
+    exec($complete_command, $op, $return_var);
+    if ($return_var) {
+      $form_state->setError($element, $this->t('Database with this credentials is not accessible'));
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function submitPhase2(array $form, FormStateInterface $form_state) {
     $entity = $this->getEntity();
     $entity->set('provisioning_state', 'phase2');
+
+    if ($subsite_credentials = $form_state->getValue('subsite_credentials')) {
+      $subsite_credentials = str_replace(["\r\n", ' '], [PHP_EOL, ''], $subsite_credentials);
+      $subsite_credentials = 'SITENAME=' . $entity->getDomain() . PHP_EOL . $subsite_credentials;
+      file_put_contents($this->getSubsitesCredentialsFilePath($entity), $subsite_credentials);
+    }
+
     $this->submitForm($form, $form_state);
     $this->save($form, $form_state);
   }
@@ -129,4 +170,15 @@ class SubsiteForm extends ContentEntityForm {
     }
   }
 
+  /**
+   * Generates path to subsite credentials file.
+   *
+   * @param $entity
+   *
+   * @return string
+   */
+  private function getSubsitesCredentialsFilePath($entity) {
+    $provisioning_source_path = Subsite::getScriptsConfigValue('PROVISIONING_SOURCES_PATH');
+    return $provisioning_source_path . DIRECTORY_SEPARATOR . $entity->getDomain();
+  }
 }

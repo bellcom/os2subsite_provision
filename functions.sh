@@ -50,6 +50,7 @@ create_creadentials_source () {
 DBNAME=${DBNAME}
 DBUSER=${DBUSER}
 DBPASS=${DBPASS}" > $PROVISIONING_SOURCES_PATH/$SITENAME
+    chown $APACHEUSER:$APACHEUSER $PROVISIONING_SOURCES_PATH/$SITENAME
   else
     echo "NOTICE: Internal DB provisioning. No need for credentials sources file."
   fi
