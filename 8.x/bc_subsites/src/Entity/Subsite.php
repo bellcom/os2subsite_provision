@@ -337,7 +337,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
    */
   public function addDomains($sitename, $domains) {
     foreach ($domains as $domain) {
-      $this->subsiteExecute('subsite_add_domain.sh ' . $this->getDomain($sitename) . ' ' . $this->getDomain($domain));
+      $this->subsiteExecute('subsite_add_domain.sh ' . $this->getDomain($sitename) . ' ' . $domain);
     }
   }
 
