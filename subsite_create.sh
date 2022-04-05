@@ -18,13 +18,6 @@ else
   fi
 fi
 
-if [ -f "$SCRIPTDIR"/config.sh ]; then
-  source "$SCRIPTDIR"/config.sh
-else
-  echo "ERROR: please create a config.sh file"
-  exit 10
-fi
-
 if [ -f "$SCRIPTDIR"/functions.sh ]; then
   source "$SCRIPTDIR"/functions.sh
 else
