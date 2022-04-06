@@ -11,26 +11,53 @@
 # To set a variable do:
 # drush vset bc_subsites_domain_suffix .subsites.xxx.dk
 
+# OS2SUBSITE common varaibles.
+## Flag for using environment variables
+## Comment this variale to use values from `config.sh file`
+USE_ENV_CONFIG=1
+## Drupal project root directory
 BASEDIR="/var/www/subsites.xxx.dk"
 SERVERIP="[SERVER_IP]"
+## Default Drupal profile for subsites.
+## Use `base_config` value
 PROFILE="os2sub"
+# List of allowed installation profiles.
+ALLOWED_INSTALL_PROFILES=minimal,base_config
+## Email used for subsite admin user.
 EMAIL="drupal@bellcom.dk"
+## Path to subsite scripts
 SCRIPTDIR="$(dirname "$0")"
+## Database creadentials for creating subsite db.
 DRUSH=$(which drush)
 DBHOST=localhost
+### Optional varialbles. Leave it empty to user root as user name.
+#DB_ROOT_USER=root
+### Optional varialbles. Leave it empty to user root user without password from localhost.
+#DB_ROOT_PASSWORD=root
+## External db provisioning
+#EXTERNAL_DB_PROVISIONING=1
+## For internal db provisioning you have to specify directory to mysql db files are stored. It's used for db existing check.
+#DBDIR=/var/lib/mysql
+## Subsite admin pass
 ADMINPASS=$(cat "$SCRIPTDIR/.admin_password.txt")
+## Path to subsite vhost template
 VHOSTTEMPLATE="$SCRIPTDIR/vhost-template.txt"
+## Drupal document root directory path
 MULTISITE="$BASEDIR/public_html"
+## Path to file where subsites registering.
 SITESFILE="$MULTISITE/sites/sites.php"
+## Temp directory for subsites
 TMPDIRBASE="$BASEDIR/tmp"
+## Log directory for subsites
 LOGDIRBASE="$BASEDIR/logs"
+## Session directory for subsites
 SESSIONDIRBASE="$BASEDIR/sessions"
-DBDIR="/var/lib/mysql"
-DBUSER="temptest"
-NOW=$(date +"%d/%m/%y %H:%M:%S")
-SQLADMIN=root
-SITEADMIN=xxx
+## Username for subsite administrator user. User will be created on subsites.
+SITEADMIN=subsiteadmin
+## Apache webserver username.
 APACHEUSER=www-data
+## Root user name. Sometimes this variable is empty.
+USER=root
 
 # Version of Drupal core. Accepted values 7,8
 DRUPAL=[7,8]
