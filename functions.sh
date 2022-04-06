@@ -206,11 +206,16 @@ check_existence_delete() {
     exit 10
   fi
 
-  # Check if database already exists
-  if [ ! -d "$DBDIR/$DBNAME" ]
+  if  [ -v EXTERNAL_DB_PROVISIONING ]
   then
-    echo "ERROR: Database, $DBDIR/$DBNAME doesn't exists"
-    exit 10
+    echo "NOTICE: External DB provisioning is used. Can not check if database or database user exists."
+  else
+    # Check if database already exists
+    if [ ! -d "$DBDIR/$DBNAME" ]
+    then
+      echo "ERROR: Database, $DBDIR/$DBNAME doesn't exists"
+      exit 10
+    fi
   fi
 }
 
