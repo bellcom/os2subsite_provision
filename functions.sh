@@ -135,9 +135,10 @@ check() {
         echo "ERROR: Credentials sources directory is not defined"
         exit 10
       else
+        mkdir -p $PROVISIONING_SOURCES_PATH
         if ! [ -d "$PROVISIONING_SOURCES_PATH" ]
         then
-          echo "ERROR: Credentials sources directory doesn't exist"
+          echo "ERROR: Credentials sources directory doesn't exist and can not be created."
           exit 10
         fi
       fi
