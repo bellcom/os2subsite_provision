@@ -51,3 +51,27 @@ function bc_subsites_update_8002() {
   $definition_update_manager->installFieldStorageDefinition('provisioning_state', 'subsite', 'subsite', $provisioning_state);
   return t('Provisioning state field has been added to subsite entity.');
 }
+
+/**
+ * Add the new field fields to subsite entity.
+ */
+function bc_subsites_update_8003() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Bail out early if a field named 'last_log_message' is already installed.
+  if ($definition_update_manager->getFieldStorageDefinition('last_log_message', 'subsite')) {
+    $message = \Drupal::state()->get('bc_subsite_update_8003_skip_message', t('Last log message field has been already added to subsite.'));
+    return $message;
+  }
+
+  // Add the 'last_log_message' field to subsite entity type.
+  $last_log_message = BaseFieldDefinition::create('string_long')
+    ->setLabel(t('Last log message'))
+    ->setDescription(t('Shows last log message.'))
+    ->setDefaultValue('')
+    ->setDisplayConfigurable('form', FALSE)
+    ->setDisplayConfigurable('view', FALSE);
+
+  $definition_update_manager->installFieldStorageDefinition('last_log_message', 'subsite', 'subsite', $last_log_message);
+  return t('Last log message field has been added to subsite entity.');
+}

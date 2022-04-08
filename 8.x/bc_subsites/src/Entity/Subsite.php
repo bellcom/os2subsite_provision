@@ -225,6 +225,18 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
       ->setDefaultValue('full')
       ->setDisplayConfigurable('view', TRUE);
 
+    // Provisioning state of the subsite.
+    $fields['last_log_message'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(t('Last log message'))
+      ->setDescription(t('Shows last log message.'))
+      ->setDefaultValue('')
+      ->setDisplayOptions('form', [
+        'type' => 'text_textfield',
+        'weight' => 0,
+      ])
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
     return $fields;
   }
 
@@ -250,6 +262,20 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
    */
   public function setProvisioningState($value) {
     return $this->set('provisioning_state', $value);
+  }
+
+  /**
+   * Get Last log message.
+   */
+  public function getLastLogMessage() {
+    return $this->last_log_message->value;
+  }
+
+  /**
+   * Set Last log message.
+   */
+  public function setLastLogMessage($value) {
+    return $this->set('last_log_message', $value);
   }
 
   /**
@@ -286,7 +312,8 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     $complete_command = 'nohup ' . $complete_command . ' > ' . $log . ' 2>&1 & echo $!';
 
     $pid = exec($complete_command, $op, $return_var);
-    $_SESSION['bc_subsite_pids'][$pid] = $log;
+    $session_key = $pid . '|' . $this->id();
+    $_SESSION['bc_subsite_pids'][$session_key] = $log;
 
     if ($return_var > 0) {
       $this->messenger()->addMessage(t('Der skete en fejl') . ': '  . end($op), 'error');
@@ -363,98 +390,9 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public function save() {
-    $sitename = $this->name->value;
-
-    $domains = [];
-    foreach (explode("\r\n", $this->domains->value) as $delta => $value) {
-      if (empty($value)) {
-        continue;
-      }
-      $domains[] = $value;
-    }
-
-    $email = $this->admin_mail->value;
-    $profile = $this->profile->value;
-    switch ($this->getProvisioningState()) {
-      case 'phase1':
-        $this->subsitesPhase1($sitename, $email, $profile);
-        // @TODO Get error status after phase1 and change state on it
-        $this->set('provisioning_state', 'phase2');
-        break;
-
-      case 'phase2':
-        if ($profile == 'base_config') {
-          $subsites_config_dir = self::getConfigValue('subsites_config_dir');
-          $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
-          $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
-          if (!file_exists($destination_config_sync_dir)) {
-            $this->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
-          }
-          // @See function.sh script lines 245-249.
-          $profile = '--existing-config=' . $destination_config_sync_dir;
-        }
-
-        $this->subsitesPhase2($sitename, $email, $profile);
-        $this->addDomains($sitename, $domains);
-        // @TODO Get error status after phase2 and change state on it
-        $this->set('provisioning_state', 'completed');
-        break;
-
-      case 'full':
-        if ($profile == 'base_config') {
-          $subsites_config_dir = self::getConfigValue('subsites_config_dir');
-          $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
-          $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
-          if (!file_exists($destination_config_sync_dir)) {
-            $this->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
-          }
-          // @See function.sh script lines 245-249.
-          $profile = '--existing-config=' . $destination_config_sync_dir;
-        }
-
-        $this->subsitesCreate($sitename, $email, $profile);
-        $this->addDomains($sitename, $domains);
-
-        $this->set('provisioning_state', 'completed');
-        break;
-
-      case 'completed':
-        $original_domains = [];
-        if (!empty($this->original->domains->value)) {
-          foreach (explode("\r\n", $this->original->domains->value) as $delta => $value) {
-            if (empty($value)) {
-              continue;
-            }
-            $original_domains[] = $value;
-          }
-        }
-
-        if (!empty($original_domains)) {
-          $this->removeDomains($sitename, $original_domains);
-        }
-        $this->addDomains($sitename, $domains);
-        break;
-    }
-
-    return parent::save();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function delete() {
-    $this->subsitesDelete($this->name->value);
-
-    return parent::delete();
-  }
-
-  /**
    * Clone config directory folder.
    */
-  private function cloneConfigDir($source, $destination) {
+  public function cloneConfigDir($source, $destination) {
     mkdir($destination, 0755, TRUE);
     foreach (array_diff(scandir($source), array('..', '.')) as $file) {
       copy($source . '/' . $file, $destination . '/' . $file);

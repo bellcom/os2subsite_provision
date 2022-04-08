@@ -72,11 +72,21 @@ class SubsiteForm extends ContentEntityForm {
             '#type' => 'textarea',
             '#default_value' => $subsite_credentials,
             '#element_validate' => ['::validateDbCredentials'],
+            '#weight' => 10,
           ];
         }
         break;
     }
 
+    if (!$entity->isNew()) {
+      $last_log_message = $entity->last_log_message->getValue();
+      $form['last_log_message'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Last log message (@data) lines', ['@data' => empty($last_log_message[0]) ? 0 : (count(explode("\n", $last_log_message[0]['value'])))]),
+        '#weight' => 20,
+        'log_message' => empty($last_log_message[0]) ? $this->t('No data') : ['#markup' => '<pre>' . $last_log_message[0]['value']. '</pre>'],
+      ];
+    }
 
     return $form;
   }
@@ -133,9 +143,77 @@ class SubsiteForm extends ContentEntityForm {
    * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
-    $form_state->setRedirect('subsites.status');
     $entity = $this->getEntity();
     $entity->save();
+
+    $sitename = $entity->get('name')->value;
+
+    $domains = [];
+    foreach (explode("\r\n", $entity->get('domains')->value) as $delta => $value) {
+      if (empty($value)) {
+        continue;
+      }
+      $domains[] = $value;
+    }
+
+    $email = $entity->get('admin_mail')->value;
+    $profile = $entity->get('profile')->value;
+    switch ($entity->getProvisioningState()) {
+      case 'phase1':
+        $entity->subsitesPhase1($sitename, $email, $profile);
+        break;
+
+      case 'phase2':
+        if ($profile == 'base_config') {
+          $subsites_config_dir = Subsite::getConfigValue('subsites_config_dir');
+          $base_subsite_config_sync_dir = Subsite::getConfigValue('base_subsite_config_dir');
+          $destination_config_sync_dir = $subsites_config_dir . '/' . $entity->getDomain($sitename) . '/sync';
+          if (!file_exists($destination_config_sync_dir)) {
+            $entity->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
+          }
+          // @See function.sh script lines 245-249.
+          $profile = '--existing-config=' . $destination_config_sync_dir;
+        }
+
+        $entity->subsitesPhase2($sitename, $email, $profile);
+        $entity->addDomains($sitename, $domains);
+        break;
+
+      case 'full':
+        if ($profile == 'base_config') {
+          $subsites_config_dir = Subsite::getConfigValue('subsites_config_dir');
+          $base_subsite_config_sync_dir = Subsite::getConfigValue('base_subsite_config_dir');
+          $destination_config_sync_dir = $subsites_config_dir . '/' . $entity->getDomain($sitename) . '/sync';
+          if (!file_exists($destination_config_sync_dir)) {
+            $entity->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
+          }
+          // @See function.sh script lines 245-249.
+          $profile = '--existing-config=' . $destination_config_sync_dir;
+        }
+
+        $entity->subsitesCreate($sitename, $email, $profile);
+        $entity->addDomains($sitename, $domains);
+        break;
+
+      case 'completed':
+        $original_domains = [];
+        if (!empty($entity->original->domains->value)) {
+          foreach (explode("\r\n", $entity->original->domains->value) as $delta => $value) {
+            if (empty($value)) {
+              continue;
+            }
+            $original_domains[] = $value;
+          }
+        }
+
+        if (!empty($original_domains)) {
+          $entity->removeDomains($sitename, $original_domains);
+        }
+        $entity->addDomains($sitename, $domains);
+        break;
+    }
+
+    $form_state->setRedirect('subsites.status');
   }
 
   /**

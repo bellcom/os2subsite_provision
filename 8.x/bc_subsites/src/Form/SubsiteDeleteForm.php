@@ -43,6 +43,7 @@ class SubsiteDeleteForm extends ContentEntityConfirmFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $entity = $this->getEntity();
+    $entity->subsitesDelete($entity->name->value);
     $entity->delete();
 
     $this->logger('bc_subsites')->notice('@type: deleted %title.',

@@ -43,7 +43,6 @@ fi
 
 
 validate_sitename "$SITENAME"
-check_existence_delete
 init "$SITENAME"
 delete_vhost
 delete_dirs
@@ -52,3 +51,6 @@ delete_db "$DBNAME"
 remove_from_hosts "$SITENAME"
 remove_from_crontab
 remove_from_sites "$SITENAME"
+
+# Print successful status in the end of the line.
+echo "complete_status:{\"status\": 1}"

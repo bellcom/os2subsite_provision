@@ -46,3 +46,6 @@ init "$SITENAME"
 remove_from_vhost
 remove_from_hosts "$REMOVEDOMAIN"
 remove_from_sites "$REMOVEDOMAIN"
+
+# Print successful status in the end of the line.
+echo "complete_status:{\"status\": 1}"

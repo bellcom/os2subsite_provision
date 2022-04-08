@@ -391,19 +391,19 @@ install_drupal8() {
   debug "Drupal install phase succesfuly finished"
 
   # Set tmp
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.file path.temporary "$TMPDIR"
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" config-set system.file path.temporary "$TMPDIR"
 
   # Do some drupal setup here. Could also be done in the install profile.
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" cset user.settings register admin_only
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" cset system.logging error_level some
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance css.preprocess 1
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance js.preprocess 1
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" pm:uninstall update
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" cset user.settings register admin_only
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" cset system.logging error_level some
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance css.preprocess 1
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance js.preprocess 1
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" config-set system.performance cache.max.age 10800
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" pm:uninstall update
 
   debug "Update translations"
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" locale-check
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" locale-update
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" locale-check
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" locale-update
 
   if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
     ${FUNCNAME[0]}_local
@@ -455,11 +455,16 @@ add_subsiteadmin() {
   debug "Create subsiteadmin user with email ($USEREMAIL)"
   # This function compatible with Drupal 7/8
   # Create user with email specified in subsitecreator.
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" user-create subsiteadmin --mail="$USEREMAIL"
-  # Add the role "Administrator"
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" user-add-role subsiteadmin subsiteadmin
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" user-create subsiteadmin --mail="$USEREMAIL"
+  # Add the role "subsiteadmin"
+  if [ -z "$(${DRUSH} -r "$MULTISITE" --uri="$SITENAME" role:list | grep subsiteadmin)" ]; then
+    debug "Role subsiteadmin is not created yet. You have to create it manually."
+  else
+    debug "Add the role subsiteadmin"
+    $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" user-add-role subsiteadmin subsiteadmin
+  fi
   # Send single-use login link.
-  $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" ev "_user_mail_notify('password_reset', user_load_by_mail('$USEREMAIL'));"
+  $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" ev "_user_mail_notify('password_reset', user_load_by_mail('$USEREMAIL'));"
 
   if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
     ${FUNCNAME[0]}_local
@@ -467,10 +472,17 @@ add_subsiteadmin() {
 }
 
 delete_vhost() {
-  debug "Disabling and deleting $SITENAME vhost"
-  #a2dissite "$SITENAME" >/dev/null
-  rm -f "/etc/apache2/sites-enabled/$SITENAME.conf"
-  rm -f "/etc/apache2/sites-available/$SITENAME.conf"
+  debug "Disabling and deleting $SITENAME vhost files if present"
+  if [ -f "/etc/apache2/sites-enabled/$SITENAME.conf" ]
+  then
+    rm -f "/etc/apache2/sites-enabled/$SITENAME.conf"
+  fi
+
+  if [ -f "/etc/apache2/sites-available/$SITENAME.conf" ]
+  then
+    rm -f "/etc/apache2/sites-available/$SITENAME.conf"
+  fi
+
   debug "Reloading Apache2"
   if [ -f /etc/init.d/apache2 ]; then
     /etc/init.d/apache2 reload >/dev/null
@@ -484,13 +496,19 @@ delete_db() {
     echo "ERROR: delete_db called without an argument"
     exit 10
   fi
-  local DBNAME=$1
-  DBUSER=$(echo "$DBNAME" | cut -c 1-16)
-  debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
-  # backup first, just in case
-  #/usr/local/sbin/mysql_backup.sh "$DBNAME"
-  /usr/bin/mysql -u root -e "DROP DATABASE $DBNAME;"
-  /usr/bin/mysql -u root -e "DROP USER $DBUSER@localhost";
+
+  if  [ -v EXTERNAL_DB_PROVISIONING ]
+  then
+    echo "NOTICE: External DB provisioning is used. Can not check if database or database user exists."
+  else
+    local DBNAME=$1
+    DBUSER=$(echo "$DBNAME" | cut -c 1-16)
+    debug "Backing up, then deleting database ($DBNAME) and database user ($DBUSER)"
+    # backup first, just in case
+    #/usr/local/sbin/mysql_backup.sh "$DBNAME"
+    /usr/bin/mysql -u root -e "DROP DATABASE $DBNAME;"
+    /usr/bin/mysql -u root -e "DROP USER $DBUSER@$DBHOST";
+  fi
 }
 
 delete_dirs() {
@@ -516,7 +534,7 @@ delete_dirs() {
 }
 
 remove_from_crontab() {
-  debug "Removing Drupal cron.php from $APACHEUSER crontab ($SITENAME)"
+  debug "Removing Drupal cron.php from $APACHEUSER crontab ($SITENAME) if present"
   crontab -u $APACHEUSER -l | sed "/$SITENAME/d" | crontab -u $APACHEUSER -
 }
 

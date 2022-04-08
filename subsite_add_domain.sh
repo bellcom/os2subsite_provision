@@ -46,3 +46,6 @@ init "$SITENAME"
 add_to_vhost
 add_to_hosts "$NEWDOMAIN"
 add_to_sites
+
+# Print successful status in the end of the line.
+echo "complete_status:{\"provisioning_state\": \"completed\", \"status\": 1}"

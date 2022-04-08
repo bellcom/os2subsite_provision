@@ -46,3 +46,6 @@ if [[ "$USER" != "root" ]]; then
 fi
 
 phase_2 $SITENAME
+
+# Print successful status in the end of the line.
+echo "complete_status:{\"provisioning_state\": \"completed\", \"status\": 1}"
