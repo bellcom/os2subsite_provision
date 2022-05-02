@@ -439,11 +439,17 @@ add_to_crontab() {
 set_crontab7() {
   CRONKEY=$($DRUSH -r "$MULTISITE" --uri="$SITENAME" vget cron_key | cut -d \' -f 2)
   CRONLINE="$CRONMINUTE */2 * * * /usr/bin/wget -O - -q -t 1 http://$SITENAME/cron.php?cron_key=$CRONKEY"
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
   (/usr/bin/crontab -u $APACHEUSER -l; echo "$CRONLINE") | /usr/bin/crontab -u $APACHEUSER -
 }
 
 set_crontab8() {
   CRONLINE="$CRONMINUTE */2 * * * $DRUSH --root=$MULTISITE --uri=$SITENAME cron -q"
+  if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
+    ${FUNCNAME[0]}_local
+  fi
   (/usr/bin/crontab -u $APACHEUSER -l; echo "$CRONLINE") | /usr/bin/crontab -u $APACHEUSER -
 }
 
