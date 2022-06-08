@@ -306,7 +306,9 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
    */
   private function subsiteExecute($command) {
     $script_path = $this->getConfigValue('script_dir');
-    $complete_command = "sudo -E $script_path/$command";
+    // Preserv environment configuration.
+    $preserve_env = $this->getScriptsConfigValue('USE_ENV_CONFIG') ? '-E' : '';
+    $complete_command = "sudo $preserve_env $script_path/$command";
 
     $log = realpath(\Drupal::service('file_system')->getTempDirectory()) . '/' . preg_replace("/[^a-zA-Z0-9]+/", "", $command) . rand(0, 20) . '.log';
     $complete_command = 'nohup ' . $complete_command . ' > ' . $log . ' 2>&1 & echo $!';
