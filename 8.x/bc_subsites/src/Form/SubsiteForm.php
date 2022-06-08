@@ -114,10 +114,13 @@ class SubsiteForm extends ContentEntityForm {
     $db_user = Subsite::getScriptsConfigValue('DBUSER', $tmp_filename);
     $db_pass = Subsite::getScriptsConfigValue('DBPASS', $tmp_filename);
     unlink($tmp_filename);
-    $complete_command = '$(mysql -u' . $db_user . ' -p' . $db_pass . ' ' . $db_name . ' -h' . $db_host . ' -e ";")';
-    exec($complete_command, $op, $return_var);
-    if ($return_var) {
-      $form_state->setError($element, $this->t('Database with this credentials is not accessible'));
+
+    try {
+      $conn = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass);
+      // Set the PDO error mode to exception
+      $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch(PDOException $e) {
+      $form_state->setError($element, $this->t('Database with this credentials is not accessible. Error @error', ['@error' => $e->getMessage()]));
     }
   }
 
