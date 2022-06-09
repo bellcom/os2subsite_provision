@@ -116,10 +116,10 @@ class SubsiteForm extends ContentEntityForm {
     unlink($tmp_filename);
 
     try {
-      $conn = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass);
+      $conn = new \PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass);
       // Set the PDO error mode to exception
-      $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    } catch(PDOException $e) {
+      $conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+    } catch(\PDOException $e) {
       $form_state->setError($element, $this->t('Database with this credentials is not accessible. Error @error', ['@error' => $e->getMessage()]));
     }
   }
