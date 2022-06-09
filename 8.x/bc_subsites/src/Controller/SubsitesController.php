@@ -98,11 +98,6 @@ class SubsitesController extends ControllerBase {
           continue;
         }
 
-        // Statuses without subsite name is not handled.
-        if (empty($status_data['name'])) {
-          continue;
-        }
-
         if ($subsite) {
           // Update provisioning_state for subsite.
           if (isset($status_data['provisioning_state'])) {
