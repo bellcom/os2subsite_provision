@@ -160,12 +160,11 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     }
 
     $base_database_path = self::getConfigValue('base_subsite_db_dump_path');
-    //TODO: check why file exists is not working
-    //if (file_exists($base_database_path)) {
+    if (file_exists($base_database_path)) {
       $profile_options['base_database'] = t('Install from base database dump @db_dump_path', [
         '@db_dump_path' => $base_database_path,
       ]);
-    //}
+    }
 
     // Install profile field for the subsite.
     $fields['profile'] = BaseFieldDefinition::create('list_string')
