@@ -17,6 +17,8 @@
 USE_ENV_CONFIG=1
 ## Drupal project root directory
 BASEDIR="/var/www/subsites.xxx.dk"
+## Absolute path of the base subsite
+BASE_SUBSITE_DIR="/var/www/subsites/web/sites/base.subsites"
 SERVERIP="[SERVER_IP]"
 ## Default Drupal profile for subsites.
 ## Use `base_config` value

@@ -574,3 +574,13 @@ remove_from_vhost() {
     apachectl graceful
   fi
 }
+
+transfer_base_files() {
+  if [[ -n "$BASE_SUBSITE_DIR" ]]
+      debug "Base subsite dir: ${BASE_SUBSITE_DIR}"
+      debug "Copying files from base subsite dir to new subsite"
+      /usr/bin/rsync -rtOXpal "$BASE_SUBSITE_DIR/files/" "$MULTISITE/sites/$SITENAME/files"
+  else
+      debug "BASE_SUBSITE_DIR not set, not copying files"
+  fi
+}
