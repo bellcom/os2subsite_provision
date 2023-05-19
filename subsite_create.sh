@@ -57,6 +57,7 @@ install_drupal
 set_permissions
 add_to_crontab
 add_subsiteadmin
+transfer_base_files
 
 # Print successful status in the end of the line.
 echo "complete_status:{\"provisioning_state\": \"completed\", \"status\": 1}"
