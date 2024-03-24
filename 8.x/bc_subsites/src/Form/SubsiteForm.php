@@ -152,11 +152,13 @@ class SubsiteForm extends ContentEntityForm {
     $sitename = $entity->get('name')->value;
 
     $domains = [];
-    foreach (explode("\r\n", $entity->get('domains')->value) as $delta => $value) {
-      if (empty($value)) {
-        continue;
+    if (!empty($entity->get('domains')->value)) {
+      foreach (explode("\r\n", $entity->get('domains')->value) as $delta => $value) {
+        if (empty($value)) {
+          continue;
+        }
+        $domains[] = $value;
       }
-      $domains[] = $value;
     }
 
     $email = $entity->get('admin_mail')->value;
@@ -242,14 +244,16 @@ class SubsiteForm extends ContentEntityForm {
 
     // Validate additional domains.
     $domains = $form_state->getValue('domains')[0]['value'];
-    foreach (explode("\r\n", $domains) as $delta => $value) {
-      if (!empty($value)) {
-        if (!$entity->isValidDomain($entity->getDomain($value))) {
-          $form_state->setErrorByName('domains', 'The domain ' . $value . ' is not valid. Only lowercase letters and no special characters.');
-        }
-      }
+    if (!empty($domains)) {
+     	foreach (explode("\r\n", $domains) as $delta => $value) {
+      		if (!empty($value)) {
+		        if (!$entity->isValidDomain($entity->getDomain($value))) {
+		          $form_state->setErrorByName('domains', 'The domain ' . $value . ' is not valid. Only lowercase letters and no special characters.');
+	        	}
+      		}
+    	}
     }
-  }
+}
 
   /**
    * Generates path to subsite credentials file.
