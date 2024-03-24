@@ -145,7 +145,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     $allowed_install_profiles = self::getConfigValue('allowed_install_profiles') ?: [];
     if (!empty($allowed_install_profiles)) {
       foreach ($allowed_install_profiles as $profile) {
-        $profile_path = drupal_get_path('profile', $profile);
+        $profile_path = \Drupal::service('extension.list.profile')->getPath($profile);
         $info = \Drupal::service('info_parser')->parse("$profile_path/$profile.info.yml");
         $profile_options[$profile] = $info['name'];
       }
@@ -156,6 +156,13 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     if ($base_subsite_config_sync_dir && $subsites_config_dir) {
       $profile_options['base_config'] = t('Install from base configuration @config_path', [
         '@config_path' => $base_subsite_config_sync_dir,
+      ]);
+    }
+
+    $base_database_path = self::getConfigValue('base_subsite_db_dump_path');
+    if (file_exists($base_database_path)) {
+      $profile_options['base_database'] = t('Install from base database dump @db_dump_path', [
+        '@db_dump_path' => $base_database_path,
       ]);
     }
 
@@ -397,7 +404,9 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
   public function cloneConfigDir($source, $destination) {
     mkdir($destination, 0755, TRUE);
     foreach (array_diff(scandir($source), array('..', '.')) as $file) {
-      copy($source . '/' . $file, $destination . '/' . $file);
+      if (!is_dir($file)) {
+        copy($source . '/' . $file, $destination . '/' . $file);
+      }
     }
   }
 
