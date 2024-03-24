@@ -404,7 +404,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
   public function cloneConfigDir($source, $destination) {
     mkdir($destination, 0755, TRUE);
     foreach (array_diff(scandir($source), array('..', '.')) as $file) {
-      if (!is_dir($file)) {
+      if (!is_dir($source . '/' . $file)) {
         copy($source . '/' . $file, $destination . '/' . $file);
       }
     }
