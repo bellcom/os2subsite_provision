@@ -49,10 +49,10 @@ validate_sitename "$SITENAME"
 validate_email "$USEREMAIL"
 check_existence_create "$SITENAME"
 init "$SITENAME"
-create_db "$DBNAME"
 create_dirs
 create_vhost
 add_to_hosts "$SITENAME"
+create_db "$DBNAME"
 install_drupal
 set_permissions
 add_to_crontab
