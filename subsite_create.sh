@@ -57,6 +57,7 @@ install_drupal
 set_permissions
 add_to_crontab
 add_subsiteadmin
+install_certificate_local
 transfer_base_files
 
 # Print successful status in the end of the line.

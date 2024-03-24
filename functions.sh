@@ -597,3 +597,18 @@ transfer_base_files() {
       debug "BASE_SUBSITE_DIR not set, not copying files"
   fi
 }
+
+
+install_certificate_local() {
+  debug "Checking if certbot exists"
+  if ! command -v certbot &> /dev/null; then
+    debug "Certbot was not found, not installing certificates"
+  else
+    debug "Installing certificate"
+    CERTBOT=$(which certbot)
+    #local SITENAME=$1
+    $CERTBOT --noninteractive --email drift@bellcom.dk --agree-tos --no-eff-email --apache -d $SITENAME
+    debug "Restarting web server"
+    /etc/init.d/apache2 restart >/dev/null
+  fi
+}
