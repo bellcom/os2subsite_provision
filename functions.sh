@@ -383,12 +383,25 @@ install_drupal8() {
     mkdir -p $CONFIG_DIR
   fi
 
+
+  DB_DUMP_PATH=""
+
+  # Checking if we are installation from dump
+  if [ $(echo ${PROFILE} | cut -d"=" -f1) == '--db-dump' ]; then
+    DB_DUMP_PATH=$(echo ${PROFILE} | cut -d"=" -f2)
+  fi
+
   echo "\$settings['config_sync_directory'] = \"$CONFIG_DIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
   echo "\$settings['file_temp_path'] = \"$TMPDIR\";" >> $MULTISITE/sites/$SITENAME/settings.php
 
-  # Do a drush site install
-  $DRUSH -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
-  debug "Drupal install phase succesfuly finished"
+  if [ -z "$DB_DUMP_PATH" ]; then
+    $DRUSH -y -r $MULTISITE site-install $PROFILE --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
+    debug "Drupal install phase succesfuly finished"
+  else
+    $DRUSH -y -r $MULTISITE site-install --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
+    gunzip -c $DB_DUMP_PATH | $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" sqlc
+    debug "Drupal install phase succesfuly finished (from dump)"
+  fi
 
   # Set tmp
   $DRUSH -y -r "$MULTISITE" --uri="$SITENAME" config-set system.file path.temporary "$TMPDIR"
