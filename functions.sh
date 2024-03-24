@@ -589,7 +589,7 @@ remove_from_vhost() {
 }
 
 transfer_base_files() {
-  if [[ -n "$BASE_SUBSITE_DIR" ]]
+  if [ -n "$BASE_SUBSITE_DIR" ]; then
       debug "Base subsite dir: ${BASE_SUBSITE_DIR}"
       debug "Copying files from base subsite dir to new subsite"
       /usr/bin/rsync -rtOXpal "$BASE_SUBSITE_DIR/files/" "$MULTISITE/sites/$SITENAME/files"
