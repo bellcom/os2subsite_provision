@@ -380,6 +380,67 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     }
   }
 
+
+  /**
+   * {@inheritdoc}
+   */
+  public function save() {
+    $sitename = $this->name->value;
+
+    $domains = [];
+    $_domains = $this->domains->value;
+    if (!empty($_domains)) {
+      foreach (explode("\r\n", $_domains) as $delta => $value) {
+        if (empty($value)) {
+          continue;
+        }
+        $domains[] = $value;
+      }
+    }
+
+    $email = $this->admin_mail->value;
+    $profile = $this->profile->value;
+    if ($this->isNew()) {
+      if ($profile == 'base_config') {
+        $subsites_config_dir = self::getConfigValue('subsites_config_dir');
+        $base_subsite_config_sync_dir = self::getConfigValue('base_subsite_config_dir');
+        $destination_config_sync_dir = $subsites_config_dir . '/' . $this->getDomain($sitename) . '/sync';
+        if (!file_exists($destination_config_sync_dir)) {
+          $this->cloneConfigDir($base_subsite_config_sync_dir, $destination_config_sync_dir);
+        }
+        // @See function.sh script lines 245-249.
+        $profile = '--existing-config=' . $destination_config_sync_dir;
+      } elseif ($profile == 'base_database') {
+        $base_db_dump_path = self::getConfigValue('base_subsite_db_dump_path');
+        $profile = '--db-dump=' . $base_db_dump_path;
+      }
+
+      $this->subsitesCreate($sitename, $email, $profile);
+      $this->addDomains($sitename, $domains);
+    }
+    else {
+      $original_domains = [];
+      if (!empty($this->original->domains->value)) {
+        foreach (explode("\r\n", $this->original->domains->value) as $delta => $value) {
+          if (empty($value)) {
+            continue;
+          }
+          $original_domains[] = $value;
+        }
+      }
+
+      if (!empty($original_domains)) {
+        $this->removeDomains($sitename, $original_domains);
+      }
+      $this->addDomains($sitename, $domains);
+    }
+
+    return parent::save();
+  }
+
+
+
+
   /**
    * Validate domain name.
    */
