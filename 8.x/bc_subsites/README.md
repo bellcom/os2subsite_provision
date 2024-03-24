@@ -9,6 +9,7 @@ Setting keys:
 * script_dir - absolute path to subsites provision scripts. See https://github.com/bellcom/os2subsite_provision;
 * subsites_config_dir - path to general directory with sites configuration files;
 * base_subsite_config_dir - path to base subsite configuration files for option to install from an exsisting configuration;
+* base_subsite_db_dump_path - path to base subsite sql dump that is gzip'ed
 * allowed_install_profiles - array with allowed profiles to select for subsite;
 * default_profile - default value for installation profile.
 * external_db_provisioning - external db provisioning flag for activates two phases provisioning.
@@ -21,6 +22,7 @@ $config['bc_subsites.settings'] = [
   'script_dir' => '/var/www/.os2subsite_provision',
   'subsites_config_dir' => '../config',
   'base_subsite_config_dir' => '../config/base.subsite/sync',
+  'base_subsite_db_dump_path' => '../config/base.subsite/base.sql.gz',
   'allowed_install_profiles' => [
     'standard',
     'minimal',
