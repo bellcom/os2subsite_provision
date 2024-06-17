@@ -8,7 +8,7 @@ namespace Drupal\bc_subsites\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
@@ -30,10 +30,10 @@ class SubsiteRedirectSubscriber implements EventSubscriberInterface {
   /**
    * Redirect requests for subsite entity view.
    *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
+   * @param  \Symfony\Component\HttpKernel\Event\RequestEvent $event
    *   Response object.
    */
-  public function redirectSubsite(GetResponseEvent $event) {
+  public function redirectSubsite(RequestEvent $event) {
     $request = $event->getRequest();
 
     if ($request->attributes->get('_route') !== 'entity.subsite.canonical') {
