@@ -1,0 +1,5 @@
+services:
+  bc_subsites.redirect:
+    class: Drupal\bc_subsites\EventSubscriber\SubsiteRedirectSubscriber
+    tags:
+      - { name: event_subscriber }

@@ -1,0 +1,77 @@
+<?php
+use Drupal\Core\Field\BaseFieldDefinition;
+
+/**
+ * Add the new field fields to subsite entity.
+ */
+function bc_subsites_update_8001() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Bail out early if a field named 'profile' is already installed.
+  if ($definition_update_manager->getFieldStorageDefinition('profile', 'subsite')) {
+    $message = \Drupal::state()->get('bc_subsite_update_8001_skip_message', t('The profile field has been already added to subsite.'));
+    return $message;
+  }
+
+  // Add the 'profile' field to subsite entity type.
+  $profile = BaseFieldDefinition::create('list_string')
+    ->setLabel(t('Install profile'))
+    ->setDescription(t('Select profile for new subsite.'))
+    ->setReadOnly(TRUE)
+    ->setRequired(FALSE)
+    ->setDefaultValue('')
+    ->setDisplayConfigurable('form', TRUE)
+    ->setDisplayConfigurable('view', TRUE);
+
+  $definition_update_manager->installFieldStorageDefinition('profile', 'subsite', 'subsite', $profile);
+  return t('The profile field has been added to subsite.');
+}
+
+/**
+ * Add the new field fields to subsite entity.
+ */
+function bc_subsites_update_8002() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Bail out early if a field named 'provisioning_state' is already installed.
+  if ($definition_update_manager->getFieldStorageDefinition('provisioning_state', 'subsite')) {
+    $message = \Drupal::state()->get('bc_subsite_update_8001_skip_message', t('Provisioning_state field has been already added to subsite.'));
+    return $message;
+  }
+
+  // Add the 'profile' field to subsite entity type.
+  $provisioning_state = BaseFieldDefinition::create('list_string')
+    ->setLabel(t('Install profile'))
+    ->setDescription(t('Reflects subsite\'s provisioning state.'))
+    ->setRequired(TRUE)
+    ->setDefaultValue('full')
+    ->setDisplayConfigurable('form', FALSE)
+    ->setDisplayConfigurable('view', FALSE);
+
+  $definition_update_manager->installFieldStorageDefinition('provisioning_state', 'subsite', 'subsite', $provisioning_state);
+  return t('Provisioning state field has been added to subsite entity.');
+}
+
+/**
+ * Add the new field fields to subsite entity.
+ */
+function bc_subsites_update_8003() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Bail out early if a field named 'last_log_message' is already installed.
+  if ($definition_update_manager->getFieldStorageDefinition('last_log_message', 'subsite')) {
+    $message = \Drupal::state()->get('bc_subsite_update_8003_skip_message', t('Last log message field has been already added to subsite.'));
+    return $message;
+  }
+
+  // Add the 'last_log_message' field to subsite entity type.
+  $last_log_message = BaseFieldDefinition::create('string_long')
+    ->setLabel(t('Last log message'))
+    ->setDescription(t('Shows last log message.'))
+    ->setDefaultValue('')
+    ->setDisplayConfigurable('form', FALSE)
+    ->setDisplayConfigurable('view', FALSE);
+
+  $definition_update_manager->installFieldStorageDefinition('last_log_message', 'subsite', 'subsite', $last_log_message);
+  return t('Last log message field has been added to subsite entity.');
+}

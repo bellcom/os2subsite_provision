@@ -1,0 +1,10 @@
+'delete subsite entity':
+  title: Delete subsite content.
+'add subsite entity':
+  title: Add subsite content
+'view subsite entity':
+  title: View subsite content
+'edit subsite entity':
+  title: Edit subsite content
+'administer subsite entity':
+  title: Administer subsite settings
