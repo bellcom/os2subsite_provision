@@ -38,7 +38,7 @@ class SubsitesController extends ControllerBase {
         }
         unset($_SESSION['bc_subsite_messages'][MessengerInterface::TYPE_STATUS]);
       }
-      return RedirectResponse::create(Url::fromRoute('entity.subsite.collection')->toString());
+      return new RedirectResponse(Url::fromRoute('entity.subsite.collection')->toString());
     }
 
     $build['inline_js'] = [
