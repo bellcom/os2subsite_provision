@@ -233,6 +233,7 @@ class SubsiteForm extends ContentEntityForm {
       }
 
       $ids = \Drupal::entityQuery('subsite')
+          ->accessCheck(false)
         ->condition('name', $name)
         ->execute();
       if (!empty($ids)) {
