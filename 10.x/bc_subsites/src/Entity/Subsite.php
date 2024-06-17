@@ -145,7 +145,7 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     $allowed_install_profiles = self::getConfigValue('allowed_install_profiles') ?: [];
     if (!empty($allowed_install_profiles)) {
       foreach ($allowed_install_profiles as $profile) {
-        $profile_path = drupal_get_path('profile', $profile);
+        $profile_path = \Drupal::service('extension.list.profile')->getPath($profile);
         $info = \Drupal::service('info_parser')->parse("$profile_path/$profile.info.yml");
         $profile_options[$profile] = $info['name'];
       }
