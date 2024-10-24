@@ -150,13 +150,14 @@ class SubsiteForm extends ContentEntityForm {
     $entity->save();
 
     $sitename = $entity->get('name')->value;
-
     $domains = [];
-    foreach (explode("\r\n", $entity->get('domains')->value) as $delta => $value) {
-      if (empty($value)) {
-        continue;
-      }
-      $domains[] = $value;
+    if (!empty($entity->get('domains')->value)) {
+    	foreach (explode("\r\n", $entity->get('domains')->value) as $delta => $value) {
+      		if (empty($value)) {
+        		continue;
+      		}
+      		$domains[] = $value;
+    	}
     }
 
     $email = $entity->get('admin_mail')->value;
