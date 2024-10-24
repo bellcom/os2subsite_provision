@@ -312,7 +312,6 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
 
     $log = realpath(\Drupal::service('file_system')->getTempDirectory()) . '/' . preg_replace("/[^a-zA-Z0-9]+/", "", $command) . rand(0, 20) . '.log';
     $complete_command = 'nohup ' . $complete_command . ' > ' . $log . ' 2>&1 & echo $!';
-
     $pid = exec($complete_command, $op, $return_var);
     $session_key = $pid . '|' . $this->id();
     $_SESSION['bc_subsite_pids'][$session_key] = $log;
@@ -397,7 +396,9 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
   public function cloneConfigDir($source, $destination) {
     mkdir($destination, 0755, TRUE);
     foreach (array_diff(scandir($source), array('..', '.')) as $file) {
-      copy($source . '/' . $file, $destination . '/' . $file);
+      if (!is_dir($source . '/' . $file)) {
+        copy($source . '/' . $file, $destination . '/' . $file);
+      }
     }
   }
 
