@@ -51,7 +51,7 @@ class SubsitesController extends ControllerBase {
         \Drupal::messenger()->addMessage($message);
         $logger = \Drupal::logger('bc_subsites');
         $logger->notice($message);
-        return RedirectResponse::create(Url::fromRoute('entity.subsite.collection')->toString());
+        return new RedirectResponse(Url::fromRoute('entity.subsite.collection')->toString());
       }
     }
     $build['result']['#markup'] = '<p>Wait please...</p><div id="updateprogress" class="progress"
@@ -77,7 +77,7 @@ aria-live="polite"><div class="progress__label"></div><div class="progress__trac
       ),
       'severity' => array(),
     );
-    return RedirectResponse::create(Url::fromRoute('dblog.overview', [
+    return new RedirectResponse(Url::fromRoute('dblog.overview', [
       'type[]' => 'bc_subsites',
     ])->toString());
   }
