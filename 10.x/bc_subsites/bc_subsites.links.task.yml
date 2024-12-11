@@ -1,0 +1,16 @@
+# Define the 'local' links for the module
+subsite.view:
+  route_name: entity.subsite.canonical
+  base_route: entity.subsite.canonical
+  title: View
+
+subsite.page_edit:
+  route_name: entity.subsite.edit_form
+  base_route: entity.subsite.canonical
+  title: Edit
+
+subsite.delete_confirm:
+  route_name:  entity.subsite.delete_form
+  base_route:  entity.subsite.canonical
+  title: Delete
+  weight: 10

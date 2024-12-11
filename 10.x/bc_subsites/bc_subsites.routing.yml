@@ -1,0 +1,72 @@
+entity.subsite.canonical:
+  path: '/subsite/{subsite}'
+  defaults:
+  # Calls the view controller, defined in the annotation of the subsite entity
+    _entity_view: 'subsite'
+    _title: 'Subsite content'
+  requirements:
+  # Calls the access controller of the entity, $operation 'view'
+    _entity_access: 'subsite.view'
+
+entity.subsite.collection:
+  path: '/admin/structure/subsite/list'
+  defaults:
+  # Calls the list controller, defined in the annotation of the subsite entity.
+    _entity_list: 'subsite'
+    _title: 'Subsite list'
+  requirements:
+  # Checks for permission directly.
+    _permission: 'view subsite entity'
+
+subsite.add:
+  path: 'subsite/add'
+  defaults:
+  # Calls the form.add controller, defined in the subsite entity.
+    _entity_form: subsite.add
+    _title: 'Add subsite'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _entity_create_access: 'subsite'
+
+entity.subsite.edit_form:
+  path: '/subsite/{subsite}/edit'
+  defaults:
+  # Calls the form.edit controller, defined in the subsite entity.
+    _entity_form: subsite.edit
+    _title: 'Edit subsite'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _entity_access: 'subsite.edit'
+
+entity.subsite.delete_form:
+  path: '/subsite/{subsite}/delete'
+  defaults:
+    # Calls the form.delete controller, defined in the subsite entity.
+    _entity_form: subsite.delete
+    _title: 'Delete subsite'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _entity_access: 'subsite.delete'
+
+subsites.status:
+  path: '/admin/structure/subsite/status'
+  defaults:
+    _controller: '\Drupal\bc_subsites\Controller\SubsitesController::status'
+    _title: 'Subistes status'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'view subsite entity'
+
+subsite.log:
+  path: '/admin/structure/subsite/log'
+  defaults:
+    _controller: '\Drupal\bc_subsites\Controller\SubsitesController::log'
+    _title: 'Subistes status'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'access site reports'

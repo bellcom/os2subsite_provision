@@ -1,0 +1,17 @@
+# All action links for this module
+
+subsite.add:
+  # Which route will be called by the link
+  route_name: subsite.add
+  title: 'Add new subsite'
+
+  # Where will the link appear, defined by route name.
+  appears_on:
+    - entity.subsite.collection
+    - entity.subsite.canonical
+
+subsite.log:
+  route_name: subsite.log
+  title: 'See log messages'
+  appears_on:
+    - entity.subsite.collection
