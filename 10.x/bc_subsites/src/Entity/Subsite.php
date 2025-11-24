@@ -235,7 +235,14 @@ class Subsite extends ContentEntityBase implements SubsiteInterface {
     if (empty($name)) {
       $name = $this->name->value;
     }
-    return $name . '.' . $this->getConfigValue('domain_suffix');
+
+    // Check if domain name is valid we we need to add the domain suffix.
+    if (str_contains($name, '.') && filter_var('https://' . $name, FILTER_VALIDATE_URL)) {
+      return $name;
+    }
+    else {
+      return $name . '.' . $this->getConfigValue('domain_suffix');
+    }
   }
 
   /**
