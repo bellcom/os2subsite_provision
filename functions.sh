@@ -189,7 +189,9 @@ create_dirs() {
   mkdir -p "$TMPDIR"
   mkdir -p "$LOGDIR"
   mkdir -p "$SESSIONDIR"
-
+  chown -R www-data: "$TMPDIR"
+  chown -R www-data: "$LOGDIR"
+  chown -R www-data: "$SESSIONDIR"
   if [ -n "$(type -t ${FUNCNAME[0]}_local)" ] && [ "$(type -t  ${FUNCNAME[0]}_local)" = function ]; then
    ${FUNCNAME[0]}_local
   fi
@@ -270,6 +272,9 @@ install_drupal8() {
     $DRUSH -y -r $MULTISITE site-install --locale=da --db-url="mysql://$DBUSER:$DBPASS@$DBHOST/$DBNAME" --sites-subdir="$SITENAME" --account-mail="$EMAIL" --site-mail="$EMAIL" --site-name="$SITENAME" --account-pass="$ADMINPASS" $INSTALL_OPTIONS
     gunzip -c $DB_DUMP_PATH | $DRUSH -q -y -r "$MULTISITE" --uri="$SITENAME" sqlc
     debug "Drupal install phase succesfuly finished (from dump)"
+    /bin/chown -R $APACHEUSER "$MULTISITE/sites/$SITENAME"
+    debug "/bin/chown -R $APACHEUSER on $MULTISITE/sites/$SITENAME"
+
   fi
 
   # Set tmp
