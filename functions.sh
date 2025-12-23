@@ -374,6 +374,7 @@ install_drupal8() {
   debug "Starting install Drupal"
   # Preparing site folder
   mkdir -p "$MULTISITE/sites/$SITENAME"
+  chown www-data: "$MULTISITE/sites/$SITENAME"
   cp $MULTISITE/sites/default/default.settings.php  $MULTISITE/sites/$SITENAME/settings.php
   if [ $(echo ${PROFILE} | cut -d"=" -f1) == '--existing-config' ]; then
     CONFIG_DIR=$(echo ${PROFILE} | cut -d"=" -f2)
