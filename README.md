@@ -1,7 +1,7 @@
 # Drupal multisite server provision scripts set.
 
 ## Requirements.
-* Drupal 7,8
+* Drupal 7/8/9/10/11
 * Apache web server
 
 NOTE: This solution doesn't work with NGINX web server.
@@ -80,6 +80,18 @@ Restart web server after adding to apply changes.
 Check article [How to run sudo command without a password](https://www.cyberciti.biz/faq/linux-unix-running-sudo-command-without-a-password/)
 if you need more info or just google it.
 
+## Drupal 10/11 module.
+
+To add module to your Drupal 8 installation create symlink to proper 8.x module
+as you can see in  example. It assumes that you have `web` as drupal root
+folder and `scripts/os2subsites_provision` as folder with os2subsites scripts.
+```
+mkdir -p ./web/modules/custom
+cd ./web/modules/custom
+ln -s ../../../scripts/os2subsites_provision/10.x/bc_subsites
+```
+
+See module [README.md](https://github.com/bellcom/os2subsite_provision/blob/develop/10.x/bc_subsites/README.md) file
 
 ## Drupal 8 module.
 

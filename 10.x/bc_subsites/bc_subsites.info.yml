@@ -2,5 +2,4 @@ name: Bellcom subsites module
 description: Create and manage subsites
 type: module
 package: Bellcom
-core: '8.x'
-core_version_requirement: ^10
+core_version_requirement: ^10 || ^11
